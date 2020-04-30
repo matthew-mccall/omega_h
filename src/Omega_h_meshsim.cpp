@@ -136,6 +136,7 @@ void read_internal(pParMesh sm, Mesh* mesh) {
     classify_equal_order(mesh, ent_dim, eqv2v, host_class_id.write());
   }
   finalize_classification(mesh);
+  // HELP
 }
 
 }  // end anonymous namespace
