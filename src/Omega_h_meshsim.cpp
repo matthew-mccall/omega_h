@@ -16,6 +16,24 @@ namespace meshsim {
 
 namespace {
 
+static bool isQuadratic(pParMesh mesh)
+{
+  pMesh part = PM_mesh(mesh,0);
+  EIter it = M_edgeIter(part);
+  pEdge e;
+  bool result = true;
+  while ((e = EIter_next(it)))
+  {
+    if (E_numPoints(e) != 1)
+    {
+      result = false;
+      break;
+    }
+  }
+  EIter_delete(it);
+  return result;
+}
+
 int classId(pEntity e) {
   pGEntity g = EN_whatIn(e);
   assert(g);
@@ -136,7 +154,35 @@ void read_internal(pParMesh sm, Mesh* mesh) {
     classify_equal_order(mesh, ent_dim, eqv2v, host_class_id.write());
   }
   finalize_classification(mesh);
-  // HELP
+  // If mesh is quadratic, add tags of edge interior points
+  std::cout << "Number of Edge Tags: " << mesh->ntags(1) << std::endl;
+  if (isQuadratic(sm)) {
+    printf("Successful isQuadratic\n");
+    edges = M_edgeIter(m);
+    pPoint interPoint;
+    // Create Edge Interior point Tag
+    HostWrite<double> interiorPointsArray_h(numEdges*3, "InterPointsArray");
+    double coord[3];
+    i = 0;
+    printf("Reached while loop\n");
+    while ((edge = (pEdge) EIter_next(edges))) {
+      // printf("%u\n",E_numPoints(edge));
+      if (E_numPoints(edge) != 1)
+        Omega_h_fail("Mesh labeled as quadratic has edges of higher order than 2!\n");
+      interPoint = E_point(edge,0);
+      P_coord(interPoint, coord);
+      interiorPointsArray_h.set(i,coord[0]);
+      interiorPointsArray_h.set(i+1,coord[1]);
+      interiorPointsArray_h.set(i+2,coord[2]); 
+      i += 3;
+    }
+    printf("Exited while loop\n");
+    Write<Real> interiorPointsArray(interiorPointsArray_h);
+    Read<Real> interiorPointsArray_r(interiorPointsArray);
+    printf("Finished Read\n");
+    mesh->add_tag<Real>(1, "InteriorPoints", 3, interiorPointsArray_r);
+    printf("Finished Setting Tag\n");
+  }
 }
 
 }  // end anonymous namespace

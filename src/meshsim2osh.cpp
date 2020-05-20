@@ -18,5 +18,10 @@ int main(int argc, char** argv) {
   auto mesh = Omega_h::meshsim::read(mesh_in, model_in, comm);
   Omega_h::binary::write(mesh_out, &mesh);
   std::cout << "wrote mesh " << mesh_out << "\n";
+  std::cout << "Number of Edge Tags: " << mesh.ntags(1) << std::endl;  
+  // Check first 10 edges of interior points for osh and sim
+  /*for (int i = 0; i < 10; i++) {
+    
+  }*/
   return 0;
 }
