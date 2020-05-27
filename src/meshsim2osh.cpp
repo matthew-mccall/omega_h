@@ -20,8 +20,13 @@ int main(int argc, char** argv) {
   std::cout << "wrote mesh " << mesh_out << "\n";
   std::cout << "Number of Edge Tags: " << mesh.ntags(1) << std::endl;  
   // Check first 10 edges of interior points for osh and sim
-  /*for (int i = 0; i < 10; i++) {
+  unsigned int nedge = mesh.nedges();
+  Omega_h::LOs edgeVerts = mesh.ask_verts_of(1);
     
-  }*/
+  for (uint i = 0; i < nedge*2+12; i+=2) {
+     std::cout << edgeVerts.get(i) << ' ' << edgeVerts.get(i+1) << std::endl;
+  }
+  
+  
   return 0;
 }
