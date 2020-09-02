@@ -43,6 +43,7 @@ class Write {
 #endif
   Write(Write&&) = default;
   Write(Write const&) = default;
+  Write& operator=(const Write&) = default;
   Write(LO size_in, std::string const& name = "");
   Write(LO size_in, T value, std::string const& name = "");
   Write(LO size_in, T offset, T stride, std::string const& name = "");
