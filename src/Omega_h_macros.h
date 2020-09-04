@@ -44,11 +44,7 @@
 #define OMEGA_H_INLINE_BIG OMEGA_H_INLINE
 #define OMEGA_H_DEVICE __device__ inline
 #define OMEGA_H_LAMBDA [=] __device__
-#if defined(OMEGA_H_USE_CUDA)
-  #define OMEGA_H_CONSTANT_DATA __constant__
-#else
-  #define OMEGA_H_CONSTANT_DATA
-#endif
+#define OMEGA_H_CONSTANT_DATA __constant__
 #elif defined(_MSC_VER)
 #define OMEGA_H_INLINE __forceinline
 #define OMEGA_H_INLINE_BIG inline
