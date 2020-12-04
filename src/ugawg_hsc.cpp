@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
   mesh.ask_qualities();
   auto opts = Omega_h::AdaptOpts(&mesh);
   opts.xfer_opts.type_map["mach"] = OMEGA_H_LINEAR_INTERP;
+  opts.min_quality_allowed = 0.1;
 #ifdef OMEGA_H_USE_EGADS
   opts.egads_model = geom;
 #endif
