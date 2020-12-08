@@ -50,17 +50,11 @@ int main(int argc, char** argv) {
   opts.egads_model = geom;
 #endif
   opts.verbosity = Omega_h::EXTRA_STATS;
-  Omega_h::vtk::Writer writer(out_prefix + "_vtk", &mesh);
-  writer.write();
   while (Omega_h::approach_metric(&mesh, opts)) {
     Omega_h::adapt(&mesh, opts);
-    writer.write();
   }
 #ifdef OMEGA_H_USE_EGADS
   Omega_h::egads_free(geom);
 #endif
-  Omega_h::meshb::write(&mesh, out_prefix + ".meshb");
-  Omega_h::meshb::write_sol(&mesh, out_prefix + "-mach.solb", "mach");
-  Omega_h::meshb::write_sol(&mesh, out_prefix + "-metric.solb", "metric");
   return 0;
 }
