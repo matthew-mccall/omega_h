@@ -73,7 +73,7 @@ if (Omega_h_USE_CUDA)
 endif()
 
 bob_begin_cxx_flags()
-bob_cxx11_flags()
+bob_cxx14_flags()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if(Omega_h_USE_CUDA)
     if (Omega_h_CUDA_ARCH)
