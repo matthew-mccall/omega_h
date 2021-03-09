@@ -147,7 +147,7 @@ endif()
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set SIMMODSUITE_FOUND to TRUE
 # if all listed variables are TRUE
-find_package_handle_standard_args(SIMMODSUITE  DEFAULT_MSG
+find_package_handle_standard_args(SimModSuite  DEFAULT_MSG
                                   SIMMODSUITE_LIBS SIMMODSUITE_INCLUDE_DIR)
 
 mark_as_advanced(SIMMODSUITE_INCLUDE_DIR SIMMODSUITE_LIBS)
