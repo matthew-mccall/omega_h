@@ -182,6 +182,7 @@ Reals limit_gradation_once_tmpl(
 
 static Reals limit_gradation_once(Mesh* mesh, Reals values, Real max_rate) {
   auto metric_dim = get_metrics_dim(mesh->nverts(), values);
+  fprintf(stderr,"metric_dim %d\n", metric_dim);
   if (mesh->dim() == 3 && metric_dim == 3) {
     return limit_gradation_once_tmpl<3, 3>(mesh, values, max_rate);
   } else if (mesh->dim() == 2 && metric_dim == 2) {
