@@ -5,6 +5,7 @@
 #include "Omega_h_element.hpp"
 #include "Omega_h_map.hpp"
 #include "Omega_h_vector.hpp"
+#include "Omega_h_array_ops.hpp"
 
 #include "SimPartitionedMesh.h"
 #include "SimModel.h"
@@ -22,7 +23,7 @@ int classId(pEntity e) {
   return GEN_tag(g);
 }
 
-void read_internal(pParMesh sm, Mesh* mesh) {
+void read_internal(pParMesh sm, Mesh* mesh, Reals& simVtxCoords) {
   (void)mesh;
   pMesh m = PM_mesh(sm, 0);
   Int max_dim;
@@ -136,6 +137,7 @@ void read_internal(pParMesh sm, Mesh* mesh) {
     classify_equal_order(mesh, ent_dim, eqv2v, host_class_id.write());
   }
   finalize_classification(mesh);
+  simVtxCoords = host_coords.write();
 }
 
 }  // end anonymous namespace
@@ -150,7 +152,13 @@ Mesh read(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
   pGModel g = GM_load(mdl_fname.c_str(), nm, p);
   pParMesh sm = PM_load(mesh_fname.c_str(), g, p);
   auto mesh = Mesh(comm->library());
-  meshsim::read_internal(sm, &mesh);
+  Reals simVtxCoords;
+  meshsim::read_internal(sm, &mesh, simVtxCoords);
+  auto oshCoords = mesh.coords();
+  if( ! are_close(simVtxCoords, oshCoords) ) {
+    fprintf(stderr, "mesh vertex order does not match... exiting\n");
+    exit(EXIT_FAILURE);
+  }
   M_release(sm);
   GM_release(g);
   SimModel_stop();
