@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 #endif
   auto original_metrics =
       mesh.get_array<Omega_h::Real>(Omega_h::VERT, "original_metric");
-  fprintf(stderr, "nverts %d\n", mesh.nverts());
+  fprintf(stderr, "nverts %d nelms %d\n", mesh.nverts(), mesh.nelems());
   fprintf(stderr, "original_metrics size %d\n", original_metrics.size());
   auto graded_metrics =
       Omega_h::limit_metric_gradation(&mesh, original_metrics, 1.0);
