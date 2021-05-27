@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
   mesh.ask_qualities();
   auto opts = Omega_h::AdaptOpts(&mesh);
   opts.xfer_opts.type_map["mach"] = OMEGA_H_LINEAR_INTERP;
+  opts.min_quality_allowed = 0.1;
 #ifdef OMEGA_H_USE_EGADS
   opts.egads_model = geom;
 #endif
@@ -84,17 +85,17 @@ int main(int argc, char** argv) {
   add_boundaryField_transferMap(&opts, "field1", OMEGA_H_LINEAR_INTERP);
 
   opts.verbosity = Omega_h::EXTRA_STATS;
-  Omega_h::vtk::Writer writer(out_prefix + "_vtk", &mesh);
-  writer.write();
+  //Omega_h::vtk::Writer writer(out_prefix + "_vtk", &mesh);
+  //writer.write();
   while (Omega_h::approach_metric(&mesh, opts)) {
     Omega_h::adapt(&mesh, opts);
-    writer.write();
+    //writer.write();
   }
 #ifdef OMEGA_H_USE_EGADS
   Omega_h::egads_free(geom);
 #endif
-  Omega_h::meshb::write(&mesh, out_prefix + ".meshb");
-  Omega_h::meshb::write_sol(&mesh, out_prefix + "-mach.solb", "mach");
-  Omega_h::meshb::write_sol(&mesh, out_prefix + "-metric.solb", "metric");
+  //Omega_h::meshb::write(&mesh, out_prefix + ".meshb");
+  //Omega_h::meshb::write_sol(&mesh, out_prefix + "-mach.solb", "mach");
+  //Omega_h::meshb::write_sol(&mesh, out_prefix + "-metric.solb", "metric");
   return 0;
 }
