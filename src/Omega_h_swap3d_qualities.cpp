@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_swap3d.hpp"
 
 #include "Omega_h_for.hpp"
@@ -23,7 +27,16 @@ void swap3d_qualities_tmpl(Mesh* mesh, AdaptOpts const& opts,
   auto ncands = cands2edges.size();
   auto cand_quals_w = Write<Real>(ncands);
   auto cand_configs_w = Write<I8>(ncands);
-  auto f = OMEGA_H_LAMBDA(LO cand) {
+  auto f = OMEGA_H_LAMBDA(LO cand
+#if defined(OMEGA_H_USE_SYCL)
+      , Int *swap_mesh_sizes, Int *swap_mesh_counts,
+        dpct::accessor<swap_tri_t, dpct::device, 2> swap_triangles,
+        dpct::accessor<Int, dpct::device, 2> swap_meshes,
+        dpct::accessor<IntPair, dpct::device, 2> unique_edges,
+        dpct::accessor<Int *, dpct::device, 2> edges2unique,
+        Int *nedges
+#endif
+    ) {
     auto edge = cands2edges[cand];
     /* non-owned edges will have incomplete cavities
        and will run into the topological assertions
@@ -42,7 +55,12 @@ void swap3d_qualities_tmpl(Mesh* mesh, AdaptOpts const& opts,
       return;
     }
     auto choice =
-        swap3d::choose(loop, quality_measure, length_measure, max_length);
+        swap3d::choose(loop, quality_measure, length_measure, max_length
+#if defined(OMEGA_H_USE_SYCL)
+            , swap_mesh_sizes, swap_mesh_counts, swap_triangles,
+              swap_meshes, unique_edges, edges2unique, nedges
+#endif
+        );
     static_assert(swap3d::MAX_CONFIGS <= INT8_MAX,
         "int8_t must be able to represent all swap configurations");
     cand_configs_w[cand] = static_cast<I8>(choice.mesh);

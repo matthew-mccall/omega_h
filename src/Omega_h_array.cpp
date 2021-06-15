@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_array.hpp"
 
 #include <cstring>
@@ -91,8 +95,10 @@ std::string const& Write<T>::name() const {
 template <typename T>
 void Write<T>::set(LO i, T value) const {
   ScopedTimer timer("single host to device");
-#ifdef OMEGA_H_USE_CUDA
+#if defined(OMEGA_H_USE_CUDA)
   cudaMemcpy(data() + i, &value, sizeof(T), cudaMemcpyHostToDevice);
+#elif defined(OMEGA_H_USE_SYCL)
+  dpct::get_default_queue().memcpy(data() + i, &value, sizeof(T)).wait();
 #else
   operator[](i) = value;
 #endif
@@ -101,9 +107,13 @@ void Write<T>::set(LO i, T value) const {
 template <typename T>
 T Write<T>::get(LO i) const {
   ScopedTimer timer("single device to host");
-#ifdef OMEGA_H_USE_CUDA
+#if defined(OMEGA_H_USE_CUDA)
   T value;
   cudaMemcpy(&value, data() + i, sizeof(T), cudaMemcpyDeviceToHost);
+  return value;
+#elif defined(OMEGA_H_USE_SYCL)
+  T value;
+  dpct::get_default_queue().memcpy(&value, data() + i, sizeof(T)).wait();
   return value;
 #else
   return operator[](i);
@@ -242,6 +252,9 @@ HostWrite<T>::HostWrite(
 
 template <typename T>
 HostWrite<T>::HostWrite(Write<T> write_in)
+#if defined(OMEGA_H_USE_SYCL)
+  try
+#endif
     : write_(write_in)
 #ifdef OMEGA_H_USE_KOKKOS
       ,
@@ -255,8 +268,27 @@ HostWrite<T>::HostWrite(Write<T> write_in)
   auto const err = cudaMemcpy(mirror_.get(), write_.data(),
       std::size_t(write_.size()) * sizeof(T), cudaMemcpyDeviceToHost);
   OMEGA_H_CHECK(err == cudaSuccess);
+#elif defined(OMEGA_H_USE_SYCL)
+  mirror_.reset(new T[std::size_t(write_.size())]);
+  /*
+  DPCT1003:3: Migrated API does not return error code. (*, 0) is inserted. You
+  may need to rewrite this code.
+  */
+  auto const err = (dpct::get_default_queue()
+                        .memcpy(mirror_.get(), write_.data(),
+                                std::size_t(write_.size()) * sizeof(T))
+                        .wait(),
+                    0);
+  OMEGA_H_CHECK(err == 0);
 #endif
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
 template <typename T>
 HostWrite<T>::HostWrite(std::initializer_list<T> l, std::string const& name_in)
@@ -267,7 +299,11 @@ HostWrite<T>::HostWrite(std::initializer_list<T> l, std::string const& name_in)
 }
 
 template <typename T>
-Write<T> HostWrite<T>::write() const {
+Write<T> HostWrite<T>::write() const 
+#if defined(OMEGA_H_USE_SYCL)
+  try
+#endif
+{
   ScopedTimer timer("array host to device");
 #ifdef OMEGA_H_USE_KOKKOS
   Kokkos::deep_copy(write_.view(), mirror_);
@@ -275,9 +311,27 @@ Write<T> HostWrite<T>::write() const {
   auto const err = cudaMemcpy(write_.data(), mirror_.get(),
       std::size_t(size()) * sizeof(T), cudaMemcpyHostToDevice);
   OMEGA_H_CHECK(err == cudaSuccess);
+#elif defined(OMEGA_H_USE_SYCL)
+  /*
+  DPCT1003:4: Migrated API does not return error code. (*, 0) is inserted. You
+  may need to rewrite this code.
+  */
+  auto const err = (dpct::get_default_queue()
+                        .memcpy(write_.data(), mirror_.get(),
+                                std::size_t(size()) * sizeof(T))
+                        .wait(),
+                    0);
+  OMEGA_H_CHECK(err == 0);
 #endif
   return write_;
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
 template <typename T>
 LO HostWrite<T>::size() const OMEGA_H_NOEXCEPT {
@@ -318,7 +372,11 @@ T HostWrite<T>::get(LO i) const {
 }
 
 template <typename T>
-HostRead<T>::HostRead(Read<T> read) : read_(read) {
+HostRead<T>::HostRead(Read<T> read) 
+#if defined(OMEGA_H_USE_SYCL)
+  try
+#endif
+: read_(read) {
   ScopedTimer timer("array device to host");
 #ifdef OMEGA_H_USE_KOKKOS
   Kokkos::View<const T*> dev_view = read.view();
@@ -330,8 +388,27 @@ HostRead<T>::HostRead(Read<T> read) : read_(read) {
   auto const err = cudaMemcpy(mirror_.get(), read_.data(),
       std::size_t(size()) * sizeof(T), cudaMemcpyDeviceToHost);
   OMEGA_H_CHECK(err == cudaSuccess);
+#elif defined(OMEGA_H_USE_SYCL)
+  mirror_.reset(new T[std::size_t(read_.size())]);
+  /*
+  DPCT1003:5: Migrated API does not return error code. (*, 0) is inserted. You
+  may need to rewrite this code.
+  */
+  auto const err =
+      (dpct::get_default_queue()
+           .memcpy(mirror_.get(), read_.data(), std::size_t(size()) * sizeof(T))
+           .wait(),
+       0);
+  OMEGA_H_CHECK(err == 0);
 #endif
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
 template <typename T>
 LO HostRead<T>::size() const {

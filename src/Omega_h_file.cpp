@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_file.hpp"
 
 #include <sys/stat.h>
@@ -35,9 +39,9 @@ static_assert(sizeof(GO) == 8, "osh format assumes 64 bit GO");
 static_assert(sizeof(Real) == 8, "osh format assumes 64 bit Real");
 
 OMEGA_H_INLINE std::uint32_t bswap32(std::uint32_t a) {
-#if defined(__GNUC__) && !defined(__CUDA_ARCH__)
+#if defined(__GNUC__) && !defined(__CUDA_ARCH__) && !defined(OMEGA_H_USE_SYCL)
   a = __builtin_bswap32(a);
-#elif defined(_MSC_VER) && !defined(__CUDA_ARCH__)
+#elif defined(_MSC_VER) && !defined(__CUDA_ARCH__) && !defined(OMEGA_H_USE_SYCL)
   a = _byteswap_ulong(a);
 #else
   a = ((a & 0x000000FF) << 24) | ((a & 0x0000FF00) << 8) |
@@ -47,9 +51,9 @@ OMEGA_H_INLINE std::uint32_t bswap32(std::uint32_t a) {
 }
 
 OMEGA_H_INLINE std::uint64_t bswap64(std::uint64_t a) {
-#if defined(__GNUC__) && !defined(__CUDA_ARCH__)
+#if defined(__GNUC__) && !defined(__CUDA_ARCH__) && !defined(OMEGA_H_USE_SYCL)
   a = __builtin_bswap64(a);
-#elif defined(_MSC_VER) && !defined(__CUDA_ARCH__)
+#elif defined(_MSC_VER) && !defined(__CUDA_ARCH__) && !defined(OMEGA_H_USE_SYCL)
   a = _byteswap_uint64(a);
 #else
   a = ((a & 0x00000000000000FFULL) << 56) |

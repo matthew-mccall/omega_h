@@ -28,6 +28,10 @@
 #ifndef R3D_HPP
 #define R3D_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <cfloat>
 #include <cmath>
 #include <initializer_list>
@@ -238,7 +242,7 @@ R3D_INLINE Real norm_squared(Vector<n> v) {
 
 template <Int n>
 R3D_INLINE Real norm(Vector<n> v) {
-  return std::sqrt(norm_squared(v));
+  return ohMath::sqrt((double)(norm_squared(v)));
 }
 
 template <Int n>
@@ -866,7 +870,7 @@ R3D_INLINE Real integrate(
    integrate() for 1D edges, just hardcode the
    length measurement */
 R3D_INLINE Real measure(Polytope<1> const& polytope) {
-  return std::abs(polytope.verts[1].pos[0] - polytope.verts[0].pos[0]);
+  return ohMath::fabs(polytope.verts[1].pos[0] - polytope.verts[0].pos[0]);
 }
 
 R3D_INLINE Real measure(Polytope<2> const& polytope) {

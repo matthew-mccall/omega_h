@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_MACROS_H
 #define OMEGA_H_MACROS_H
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_config.h>
 
 #define OMEGA_H_STRINGIFY(s) #s
@@ -42,6 +46,12 @@
 #define OMEGA_H_DEVICE __device__ inline
 #define OMEGA_H_LAMBDA [=] __device__
 #define OMEGA_H_CONSTANT_DATA __constant__
+#if defined(OMEGA_H_USE_SYCL)
+#define OMEGA_H_INLINE inline
+#define OMEGA_H_INLINE_BIG OMEGA_H_INLINE
+#define OMEGA_H_DEVICE inline
+#define OMEGA_H_LAMBDA [=] 
+#define OMEGA_H_CONSTANT_DATA 
 #elif defined(_MSC_VER)
 #define OMEGA_H_INLINE __forceinline
 #define OMEGA_H_INLINE_BIG inline
@@ -70,6 +80,12 @@
 #endif
 #else
 #define OMEGA_H_DLL
+#endif
+
+#if defined(OMEGA_H_USE_SYCL)
+namespace ohMath = sycl;
+#else
+namespace ohMath = std;
 #endif
 
 #endif

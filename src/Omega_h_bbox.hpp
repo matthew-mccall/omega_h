@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_BBOX_HPP
 #define OMEGA_H_BBOX_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_affine.hpp>
 #include <Omega_h_vector.hpp>
 
@@ -57,6 +61,9 @@ OMEGA_H_INLINE BBox<dim> unite(BBox<dim> a, BBox<dim> b) {
 }
 
 template <Int dim>
+#if defined(OMEGA_H_USE_SYCL)
+SYCL_EXTERNAL
+#endif
 OMEGA_H_INLINE bool are_close(BBox<dim> a, BBox<dim> b) {
   return are_close(a.min, b.min) && are_close(a.max, b.max);
 }

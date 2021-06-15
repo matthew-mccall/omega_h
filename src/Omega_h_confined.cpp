@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_confined.hpp"
 
 #include "Omega_h_for.hpp"
@@ -207,7 +211,7 @@ Reals get_pinched_tri_angles_dim(Mesh* mesh) {
       auto d0 = ttv2x[(i + 1) % 3] - ttv2x[i];
       auto d1 = ttv2x[(i + 2) % 3] - ttv2x[i];
       auto cos_a = normalize(d0) * normalize(d1);
-      auto angle = std::acos(cos_a);
+      auto angle = ohMath::acos(cos_a);
       if (tri_angle == -1.0 || angle < tri_angle) {
         tri_angle = angle;
       }
@@ -251,7 +255,7 @@ Reals get_pinched_tet_angles(Mesh* mesh) {
       auto d0 = reject(l0, tangent);
       auto d1 = reject(l1, tangent);
       auto cos_a = normalize(d0) * normalize(d1);
-      auto angle = std::acos(cos_a);
+      auto angle = ohMath::acos(cos_a);
       if (tet_angle == -1.0 || angle < tet_angle) {
         tet_angle = angle;
       }

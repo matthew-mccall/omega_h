@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_FOR_HPP
 #define OMEGA_H_FOR_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_defines.hpp>
 #include <Omega_h_profile.hpp>
 
@@ -18,13 +22,20 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #endif
 
-#include <thrust/execution_policy.h>
-#include <thrust/for_each.h>
+#include <dpct/dpl_utils.hpp>
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/algorithm>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
+#endif
+
+#if defined(OMEGA_H_USE_SYCL) 
+#include <dpct/dpl_utils.hpp>
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/algorithm>
 #endif
 
 namespace Omega_h {
@@ -37,6 +48,10 @@ void for_each(InputIterator first, InputIterator last, UnaryFunction&& f) {
   Omega_h::entering_parallel = false;
 #if defined(OMEGA_H_USE_CUDA)
   thrust::for_each(thrust::device, first, last, f2);
+#elif defined(OMEGA_H_USE_SYCL)
+  std::for_each(
+      oneapi::dpl::execution::make_device_policy(dpct::get_default_queue()),
+      thrust::device, first, last, f2);
 #elif defined(OMEGA_H_USE_OPENMP)
   LO const n = last - first;
 #pragma omp parallel for

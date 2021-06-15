@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_MESH_HPP
 #define OMEGA_H_MESH_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif 
 #include <array>
 #include <map>
 #include <set>

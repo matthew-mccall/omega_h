@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_SHAPE_HPP
 #define OMEGA_H_SHAPE_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_adj.hpp>
 #include <Omega_h_affine.hpp>
 #include <Omega_h_mesh.hpp>
@@ -99,8 +103,8 @@ OMEGA_H_INLINE Real simplex_size_from_basis(Few<Vector<3>, 3> b) {
  */
 
 OMEGA_H_INLINE Real anisotropic_edge_length(Real l_a, Real l_b) {
-  if (std::abs(l_a - l_b) > 1e-3) {
-    return (l_a - l_b) / (std::log(l_a / l_b));
+  if (ohMath::fabs(l_a - l_b) > 1e-3) {
+    return (l_a - l_b) / (ohMath::log(l_a / l_b));
   }
   return (l_a + l_b) / 2.;
 }

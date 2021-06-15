@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_HILBERT_HPP
 #define OMEGA_H_HILBERT_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <cstdint>
 
 #include <Omega_h_affine.hpp>
@@ -134,7 +138,12 @@ OMEGA_H_INLINE Few<hilbert::coord_t, dim> from_spatial(
     /* this is more of an assert, and allows coordinates to be slightly
        outside the unit box without too severe consequences */
     auto zero_to_one_coord = clamp(unit_box_coord[j], 0.0, 1.0);
-    auto zero_to_2eP_coord = zero_to_one_coord * std::exp2(Real(nbits));
+    auto zero_to_2eP_coord =
+#if defined(OMEGA_H_USE_SYCL)
+        zero_to_one_coord * sycl::exp2((double)Real(nbits));
+#else
+        zero_to_one_coord * std::exp2(Real(nbits));
+#endif
     X[j] = hilbert::coord_t(zero_to_2eP_coord);
     /* some values will just graze the acceptable range
        (with proper floating point math they are exactly

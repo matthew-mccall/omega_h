@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <sstream>
 
 #include <Omega_h_array_ops.hpp>
@@ -512,7 +516,7 @@ any eval_exp(LO size, ExprReader::Args& args) {
       throw ParserFail("exp() given array that wasn't scalars");
     }
     auto out = Write<Real>(a.size());
-    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = std::exp(a[i]); };
+    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = ohMath::exp((double)(a[i])); };
     parallel_for(a.size(), f, "eval_exp(Reals)");
     return Reals(out);
   } else {
@@ -537,7 +541,7 @@ any eval_sqrt(LO size, ExprReader::Args& args) {
       throw ParserFail("sqrt() given array that wasn't scalars");
     }
     auto out = Write<Real>(a.size());
-    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = std::sqrt(a[i]); };
+    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = ohMath::sqrt((double)(a[i])); };
     parallel_for(a.size(), f, "eval_sqrt(Reals)");
     return Reals(out);
   } else {
@@ -562,7 +566,7 @@ any eval_sin(LO size, ExprReader::Args& args) {
       throw ParserFail("sin() given array that wasn't scalars");
     }
     auto out = Write<Real>(a.size());
-    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = std::sin(a[i]); };
+    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = ohMath::sin((double)(a[i])); };
     parallel_for(a.size(), f, "eval_sin(Reals)");
     return Reals(out);
   } else {
@@ -587,7 +591,7 @@ any eval_cos(LO size, ExprReader::Args& args) {
       throw ParserFail("cos() given array that wasn't scalars");
     }
     auto out = Write<Real>(a.size());
-    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = std::cos(a[i]); };
+    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = ohMath::cos((double)(a[i])); };
     parallel_for(a.size(), f, "eval_cos(Reals)");
     return Reals(out);
   } else {
@@ -612,7 +616,7 @@ any eval_erf(LO size, ExprReader::Args& args) {
       throw ParserFail("erf() given array that wasn't scalars");
     }
     auto out = Write<Real>(a.size());
-    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = std::erf(a[i]); };
+    auto f = OMEGA_H_LAMBDA(LO i) { out[i] = ohMath::erf((double)(a[i])); };
     parallel_for(a.size(), f, "eval_erf(Reals)");
     return Reals(out);
   } else {

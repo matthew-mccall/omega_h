@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_simplify.hpp"
 
 #include "Omega_h_build.hpp"
@@ -18,6 +22,24 @@ namespace Omega_h {
 */
 
 namespace {
+
+#define OMEGA_H_DEFINE_CONSTANT_1D(name,x,vals) { \
+#if defined(OMEGA_H_USE_SYCL)
+static dpct::constant_memory<const Int, 1> \
+    (name)(sycl::range<1>((x)), (vals) ); \
+#else
+OMEGA_H_CONSTANT_DATA static Int const (name)[(x)] = vals; \
+#endif
+}
+
+#define OMEGA_H_DEFINE_CONSTANT_2D(name,x,y,vals) { \
+#if defined(OMEGA_H_USE_SYCL)
+static dpct::constant_memory<const Int, 2> \
+    (name)(sycl::range<2>((x),(y)), (vals) ); \
+#else
+OMEGA_H_CONSTANT_DATA static Int const (name)[(x)][(y)] = (vals); \
+#endif
+}
 
 OMEGA_H_INLINE Int find_min(LO const v[], Int n) {
   Int min_i = 0;
@@ -50,7 +72,7 @@ OMEGA_H_INLINE void rot_to_first(LO v[], Int nv, Int first) {
 }
 
 /* quad to tri template */
-OMEGA_H_CONSTANT_DATA Int const qtv2qqv[2][3] = {{0, 1, 2}, {2, 3, 0}};
+OMEGA_H_DEFINE_CONSTANT_2D(qtv2qqv, 2, 3, {{0, 1, 2}, {2, 3, 0}});
 
 /* below are the hex-to-tet templates for the
    four unique cases identified by Dompierre et al.
@@ -59,27 +81,32 @@ OMEGA_H_CONSTANT_DATA Int const qtv2qqv[2][3] = {{0, 1, 2}, {2, 3, 0}};
 
 /* tets from a hex with no diagonals
    into the back-upper-right corner */
-OMEGA_H_CONSTANT_DATA Int const htv2hhv_0[5][4] = {
-    {0, 1, 2, 5}, {0, 2, 7, 5}, {0, 2, 3, 7}, {0, 5, 7, 4}, {2, 7, 5, 6}};
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_0, 5, 4, {
+    {0, 1, 2, 5}, {0, 2, 7, 5}, {0, 2, 3, 7}, {0, 5, 7, 4}, {2, 7, 5, 6}});
 /* tets from a hex with 1 diagonal
    into the back-upper-right corner,
    on the right face */
-OMEGA_H_CONSTANT_DATA Int const htv2hhv_1[6][4] = {{0, 5, 7, 4}, {0, 1, 7, 5},
-    {1, 6, 7, 5}, {0, 7, 2, 3}, {0, 7, 1, 2}, {1, 7, 6, 2}};
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_1, 6, 4, {{0, 5, 7, 4}, {0, 1, 7, 5},
+    {1, 6, 7, 5}, {0, 7, 2, 3}, {0, 7, 1, 2}, {1, 7, 6, 2}});
 /* tets from a hex with 2 diagonals
    into the back-upper-right corner,
    none on the right face */
-OMEGA_H_CONSTANT_DATA Int const htv2hhv_2[6][4] = {{0, 4, 5, 6}, {0, 3, 7, 6},
-    {0, 7, 4, 6}, {0, 1, 2, 5}, {0, 3, 6, 2}, {0, 6, 5, 2}};
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_2, 6, 4, {{0, 4, 5, 6}, {0, 3, 7, 6},
+    {0, 7, 4, 6}, {0, 1, 2, 5}, {0, 3, 6, 2}, {0, 6, 5, 2}});
 /* tets from a hex with 3 diagonals
    into the back-upper-right corner */
-OMEGA_H_CONSTANT_DATA Int const htv2hhv_3[6][4] = {{0, 2, 3, 6}, {0, 3, 7, 6},
-    {0, 7, 4, 6}, {0, 5, 6, 4}, {1, 5, 6, 0}, {1, 6, 2, 0}};
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_3, 6, 4, {{0, 2, 3, 6}, {0, 3, 7, 6},
+    {0, 7, 4, 6}, {0, 5, 6, 4}, {1, 5, 6, 0}, {1, 6, 2, 0}});
 
-OMEGA_H_CONSTANT_DATA Int const hex_flip_pairs[4][2] = {
-    {0, 4}, {3, 5}, {1, 7}, {2, 6}};
+OMEGA_H_DEFINE_CONSTANT_2D(hex_flip_pairs, 4, 2, {
+    {0, 4}, {3, 5}, {1, 7}, {2, 6}});
 
-OMEGA_H_DEVICE void flip_hex(LO hhv2v[]) {
+OMEGA_H_DEVICE void flip_hex(LO hhv2v[]
+#if defined(OMEGA_H_USE_SYCL)
+    ,
+    dpct::accessor<const Int, dpct::constant, 2> hex_flip_pairs
+#endif
+) {
   for (Int i = 0; i < 4; ++i)
     swap2(hhv2v[hex_flip_pairs[i][0]], hhv2v[hex_flip_pairs[i][1]]);
 }
@@ -88,16 +115,21 @@ OMEGA_H_DEVICE void flip_hex(LO hhv2v[]) {
    corner, starting with the right face
    and curling around the centroidal XYZ axis.
    also, numbered with the corner vertex first */
-OMEGA_H_CONSTANT_DATA Int const hex_bur_faces[3][4] = {
-    {6, 5, 1, 2}, {6, 2, 3, 7}, {6, 7, 4, 5}};
+OMEGA_H_DEFINE_CONSTANT_2D(hex_bur_faces, 3, 4, {
+    {6, 5, 1, 2}, {6, 2, 3, 7}, {6, 7, 4, 5}});
 
 /* the vertices that rotate amonst one another
    when a hex is rotated around its centroidal
    XYZ axis (the line between the front-lower-left
    corner and the back-upper-right corner). */
-OMEGA_H_CONSTANT_DATA Int const hex_bur_ring[6] = {1, 2, 3, 7, 5, 4};
+OMEGA_H_DEFINE_CONSTANT_1D(hex_bur_ring, 6, {1, 2, 3, 7, 5, 4});
 
-OMEGA_H_DEVICE void hex_bur_rot_ntimes(LO hhv2v[], Int ntimes) {
+OMEGA_H_DEVICE void hex_bur_rot_ntimes(LO hhv2v[], Int ntimes
+#if defined(OMEGA_H_USE_SYCL)
+    ,
+    const Int *hex_bur_ring
+#endif
+  ) {
   LO tmp[6];
   for (Int i = 0; i < 6; ++i) {
     tmp[i] = hhv2v[hex_bur_ring[i]];
@@ -111,8 +143,12 @@ OMEGA_H_DEVICE void hex_bur_rot_ntimes(LO hhv2v[], Int ntimes) {
 /* rotate the hex around its centroidal XYZ axis such
    that face (new_right) becomes the right face.
    (new_right) corresponds to the table hex_bur_faces[] */
-OMEGA_H_DEVICE void hex_bur_rot_to_right(LO hhv2v[], Int new_right) {
-  hex_bur_rot_ntimes(hhv2v, ((3 - new_right) % 3));
+OMEGA_H_DEVICE void hex_bur_rot_to_right(LO hhv2v[], Int new_right
+#if defined(OMEGA_H_USE_SYCL)
+    , const Int *hex_bur_ring
+#endif
+  ) {
+  hex_bur_rot_ntimes(hhv2v, ((3 - new_right) % 3), hex_bur_ring);
 }
 }  // namespace
 
@@ -120,7 +156,11 @@ LOs tris_from_quads(LOs qv2v) {
   LO nq = divide_no_remainder(qv2v.size(), 4);
   LO nt = nq * 2;
   Write<LO> tv2v(nt * 3);
-  auto f = OMEGA_H_LAMBDA(LO q) {
+  auto f = OMEGA_H_LAMBDA(LO q
+#if defined(OMEGA_H_USE_SYCL)
+      , dpct::accessor<const Int, dpct::constant, 2> qtv2qqv
+#endif
+    ) {
     LO qv_begin = q * 4;
     LO qqv2v[4];
     for (Int i = 0; i < 4; ++i) qqv2v[i] = qv2v[qv_begin + i];
@@ -142,7 +182,12 @@ LOs tris_from_quads(LOs qv2v) {
 }
 
 static OMEGA_H_DEVICE void tets_from_hex_1(
-    LO h, LOs hv2v, LO hhv2v[], Int diags_into[], Int& ndiags_into) {
+    LO h, LOs hv2v, LO hhv2v[], Int diags_into[], Int& ndiags_into
+#if defined(OMEGA_H_USE_SYCL)
+    , dpct::accessor<const Int, dpct::constant, 2> hex_flip_pairs,
+    dpct::accessor<const Int, dpct::constant, 2> hex_bur_faces
+#endif
+  ) {
   LO hv_begin = h * 8;
   for (Int i = 0; i < 8; ++i) {
     hhv2v[i] = hv2v[hv_begin + i];
@@ -156,7 +201,12 @@ static OMEGA_H_DEVICE void tets_from_hex_1(
   /* rotate around the centroidal XY line
      as needed to make the minimum vertex
      front-lower-left */
-  if (min_i >= 4) flip_hex(hhv2v);
+  if (min_i >= 4) 
+#if defined(OMEGA_H_USE_SYCL)
+    flip_hex(hhv2v, hex_flip_pairs);
+#else
+    flip_hex(hhv2v);
+#endif
   /* check the diagonals going into the
      back-upper-right corner */
   for (Int i = 0; i < 3; ++i) {
@@ -180,11 +230,20 @@ static OMEGA_H_DEVICE void fill_tets_from_hex(Write<LO> tv2v, LOs h2ht, LO h,
 LOs tets_from_hexes(LOs hv2v) {
   LO nh = divide_no_remainder(hv2v.size(), 8);
   Write<LO> degrees(nh);
-  auto count = OMEGA_H_LAMBDA(LO h) {
+  auto count = OMEGA_H_LAMBDA(LO h
+#if defined(OMEGA_H_USE_SYCL)
+      , dpct::accessor<const Int, dpct::constant, 2> hex_flip_pairs,
+      dpct::accessor<const Int, dpct::constant, 2> hex_bur_faces
+#endif
+    ) {
     LO hhv2v[8];
     Int diags_into[3];
     Int ndiags_into;
-    tets_from_hex_1(h, hv2v, hhv2v, diags_into, ndiags_into);
+    tets_from_hex_1(h, hv2v, hhv2v, diags_into, ndiags_into
+#if defined(OMEGA_H_USE_SYCL)
+        , hex_flip_pairs, hex_bur_faces
+#endif
+    );
     if (ndiags_into == 0)
       degrees[h] = 5;
     else
@@ -194,11 +253,25 @@ LOs tets_from_hexes(LOs hv2v) {
   auto h2ht = offset_scan(LOs(degrees));
   LO nt = h2ht.last();
   Write<LO> tv2v(nt * 4);
-  auto fill = OMEGA_H_LAMBDA(LO h) {
+  auto fill = OMEGA_H_LAMBDA(LO h
+#if defined(OMEGA_H_USE_SYCL)
+      , dpct::accessor<const Int, dpct::constant, 2> htv2hhv_0,
+        dpct::accessor<const Int, dpct::constant, 2> htv2hhv_1,
+        dpct::accessor<const Int, dpct::constant, 2> htv2hhv_2,
+        dpct::accessor<const Int, dpct::constant, 2> htv2hhv_3,
+        dpct::accessor<const Int, dpct::constant, 2> hex_flip_pairs,
+        dpct::accessor<const Int, dpct::constant, 2> hex_bur_faces,
+        const Int *hex_bur_ring
+#endif
+    ) {
     LO hhv2v[8];
     Int diags_into[3];
     Int ndiags_into;
-    tets_from_hex_1(h, hv2v, hhv2v, diags_into, ndiags_into);
+    tets_from_hex_1(h, hv2v, hhv2v, diags_into, ndiags_into
+#if defined(OMEGA_H_USE_SYCL)
+        , hex_flip_pairs, hex_bur_faces
+#endif
+    );
     if (ndiags_into == 0) {
       fill_tets_from_hex(tv2v, h2ht, h, hhv2v, htv2hhv_0, 5);
     } else if (ndiags_into == 1) {
@@ -207,7 +280,11 @@ LOs tets_from_hexes(LOs hv2v) {
       Int diag_face = -1;
       for (Int i = 0; i < 3; ++i)
         if (diags_into[i]) diag_face = i;
-      hex_bur_rot_to_right(hhv2v, diag_face);
+      hex_bur_rot_to_right(hhv2v, diag_face
+#if defined(OMEGA_H_USE_SYCL)
+          , hex_bur_ring
+#endif
+      );
       fill_tets_from_hex(tv2v, h2ht, h, hhv2v, htv2hhv_1, 6);
     } else if (ndiags_into == 2) {
       /* two diagonals into the far corner.
@@ -216,7 +293,11 @@ LOs tets_from_hexes(LOs hv2v) {
       Int diag_face = -1;
       for (Int i = 0; i < 3; ++i)
         if (!diags_into[i]) diag_face = i;
-      hex_bur_rot_to_right(hhv2v, diag_face);
+      hex_bur_rot_to_right(hhv2v, diag_face
+#if defined(OMEGA_H_USE_SYCL)
+          , hex_bur_ring
+#if
+      );
       fill_tets_from_hex(tv2v, h2ht, h, hhv2v, htv2hhv_2, 6);
     } else {
       /* three diagonals into the far corner. */

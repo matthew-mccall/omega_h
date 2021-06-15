@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_METRIC_INTERSECT_HPP
 #define OMEGA_H_METRIC_INTERSECT_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_metric.hpp>
 
 namespace Omega_h {
@@ -246,7 +250,7 @@ OMEGA_H_INLINE_BIG Tensor<dim> intersect_metrics(
     Vector<dim> l_m1_sqrt;
     Vector<dim> l_m1_inv_sqrt;
     for (Int i = 0; i < dim; ++i) {
-      l_m1_sqrt[i] = std::sqrt(m1_dc.l[i]);
+      l_m1_sqrt[i] = ohMath::sqrt(m1_dc.l[i]);
       l_m1_inv_sqrt[i] = 1.0 / l_m1_sqrt[i];
     }
     auto m1_sqrt = compose_ortho(m1_dc.q, l_m1_sqrt);

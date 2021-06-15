@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_VECTOR_HPP
 #define OMEGA_H_VECTOR_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_array.hpp>
 #include <Omega_h_few.hpp>
 
@@ -141,11 +145,11 @@ OMEGA_H_INLINE Real norm_squared(Vector<n> v) OMEGA_H_NOEXCEPT {
 
 template <Int n>
 OMEGA_H_INLINE Real norm(Vector<n> v) OMEGA_H_NOEXCEPT {
-  return std::sqrt(norm_squared(v));
+  return ohMath::sqrt((double)(norm_squared(v)));
 }
 
 OMEGA_H_INLINE Real norm(Vector<1> v) OMEGA_H_NOEXCEPT {
-  return std::abs(v[0]);
+  return ohMath::fabs(v[0]);
 }
 
 template <Int n>
@@ -175,6 +179,9 @@ OMEGA_H_INLINE Vector<3> vector_3(Real x, Real y, Real z) OMEGA_H_NOEXCEPT {
 }
 
 template <Int n>
+#if defined(OMEGA_H_USE_SYCL)
+SYCL_EXTERNAL
+#endif
 OMEGA_H_INLINE bool are_close(Vector<n> a, Vector<n> b, Real tol = EPSILON,
     Real floor = EPSILON) OMEGA_H_NOEXCEPT {
   for (Int i = 0; i < n; ++i)

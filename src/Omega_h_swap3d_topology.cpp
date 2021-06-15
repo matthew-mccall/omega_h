@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_swap3d.hpp"
 
 #include "Omega_h_for.hpp"
@@ -18,7 +22,11 @@ HostFew<LOs, 4> swap3d_keys_to_prods(Mesh* mesh, LOs keys2edges) {
   for (Int prod_dim = EDGE; prod_dim <= REGION; ++prod_dim) {
     keys2nprods_w[prod_dim] = Write<LO>(nkeys);
   }
-  auto f = OMEGA_H_LAMBDA(LO key) {
+  auto f = OMEGA_H_LAMBDA(LO key
+#if defined(OMEGA_H_USE_SYCL)
+      , const Int *swap_mesh_sizes, const Int *nedges
+#endif
+    ) {
     auto edge = keys2edges[key];
     auto loop_size = edges2ntets[edge];
     auto nplane_tris = swap3d::swap_mesh_sizes[loop_size];
@@ -52,7 +60,16 @@ HostFew<LOs, 4> swap3d_topology(Mesh* mesh, LOs keys2edges,
         Write<LO>(keys2prods[prod_dim].last() * Int(prod_dim + 1));
   }
   auto nkeys = keys2edges.size();
-  auto f = OMEGA_H_LAMBDA(LO key) {
+  auto f = OMEGA_H_LAMBDA(LO key
+#if defined(OMEGA_H_USE_SYCL)
+      , const Int *swap_mesh_sizes,
+        dpct::accessor<swap_tri_t, dpct::device, 2> swap_triangles,
+        dpct::accessor<Int, dpct::device, 2> swap_meshes,
+        dpct::accessor<IntPair, dpct::device, 2> unique_edges,
+        dpct::accessor<Int *, dpct::device, 2> edges2unique,
+        const Int *nedges
+#endif
+    ) {
     auto edge = keys2edges[key];
     auto config = edge_configs[edge];
     auto loop = swap3d::find_loop(edges2edge_tets, edge_tets2tets,

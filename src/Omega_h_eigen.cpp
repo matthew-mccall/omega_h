@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_eigen.hpp"
 
 #include "Omega_h_for.hpp"
@@ -7,9 +11,9 @@ namespace Omega_h {
 template <Int n_max, typename T>
 OMEGA_H_INLINE T maximum_magnitude(Few<T, n_max> x, Int n) {
   auto out = x[0];
-  auto max_mag = std::abs(x[0]);
+  auto max_mag = ohMath::fabs(x[0]);
   for (Int i = 1; i < n; ++i) {
-    auto mag = std::abs(x[i]);
+    auto mag = ohMath::fabs(x[i]);
     if (mag > max_mag) {
       max_mag = mag;
       out = x[i];

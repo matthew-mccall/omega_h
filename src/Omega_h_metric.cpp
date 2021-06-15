@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_metric.hpp"
 
 #include <iostream>
@@ -339,7 +343,7 @@ static OMEGA_H_INLINE_BIG Tensor<dim> metric_from_hessian(
   constexpr auto c_denom = 2 * square(dim + 1);
   decltype(ed.l) tilde_l;
   for (Int i = 0; i < dim; ++i) {
-    tilde_l[i] = (c_num * std::abs(l[i])) / (c_denom * eps);
+    tilde_l[i] = (c_num * ohMath::fabs(l[i])) / (c_denom * eps);
   }
   return compose_eigen(r, tilde_l);
 }
@@ -374,7 +378,7 @@ static OMEGA_H_INLINE_BIG Tensor<dim> metric_from_gradient(
   constexpr auto c_denom = square(2 * (dim + 1));
   auto const l = (c_num * grad_norm_sq) / (c_denom * square(eps));
   if (l < EPSILON) return zero_matrix<dim, dim>();
-  auto const grad_norm = std::sqrt(grad_norm_sq);
+  auto const grad_norm = ohMath::sqrt((double)grad_norm_sq);
   auto const dir = grad / grad_norm;
   return outer_product(dir, dir) * l;
 }

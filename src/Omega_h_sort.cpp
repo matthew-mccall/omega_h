@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_int_iterator.hpp>
 #include <Omega_h_scan.hpp>
 #include <Omega_h_sort.hpp>
@@ -24,6 +28,15 @@ inline __host__ __device__ void va_printf(const char*, Args...) {
 #pragma GCC diagnostic pop
 #endif
 
+#elif defined(OMEGA_H_USE_SYCL)
+inline void va_printf(const char*, Args...) {
+  /*
+  DPCT1040:7: Use sycl::stream instead of printf, if your code is used on the
+  device.
+  */
+  printf("\n"); //FIXME
+}
+
 #elif defined(OMEGA_H_USE_OPENMP)
 
 #include <omp.h>
@@ -46,6 +59,14 @@ static void parallel_sort(T* b, T* e, Comp c) {
   auto bptr = thrust::device_ptr<T>(b);
   auto eptr = thrust::device_ptr<T>(e);
   thrust::stable_sort(bptr, eptr, c);
+#elif defined(OMEGA_H_USE_SYCL)
+  auto bptr = dpct::device_pointer<T>(b);
+  auto eptr = dpct::device_pointer<T>(e);
+  /*
+  DPCT1007:8: Migration of this CUDA API is not supported by the Intel(R) DPC++
+  Compatibility Tool.
+  */
+  thrust::stable_sort(bptr, eptr, c); //FIXME
 #elif defined(OMEGA_H_USE_OPENMP)
   pss::parallel_stable_sort(b, e, c);
 #else

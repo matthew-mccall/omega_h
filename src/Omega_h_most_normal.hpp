@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_MOST_NORMAL_HPP
 #define OMEGA_H_MOST_NORMAL_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_vector.hpp>
 
 namespace Omega_h {
@@ -56,7 +60,7 @@ OMEGA_H_INLINE Vector<3> get_most_normal_normal(
         // if the vectors aren't linearly independent, then either
         // two or more of them are the same or they are co-linear.
         // neither of these cases is something we want to deal with.
-        if (std::abs(determinant(M)) < 1e-6) continue;
+        if (ohMath::fabs(determinant(M)) < 1e-6) continue;
         // otherwise, the un-normalized vector we're looking for
         // is one that has the same dot product with all three,
         // we choose the arbitrary constant 1.0 as this product

@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_ATOMICS_HPP
 #define OMEGA_H_ATOMICS_HPP
 
+#if defined(OMEGA_H_USE_SYCL
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_config.h>
 
 #if defined(OMEGA_H_USE_KOKKOS)
@@ -29,6 +33,14 @@ OMEGA_H_DEVICE int atomic_fetch_add(int* const dest, const int val) {
   return oldval;
 #elif defined(OMEGA_H_USE_CUDA)
   return atomicAdd(dest, val);
+#elif defined(OMEGA_H_USE_SYCL)
+  /*
+  DPCT1039:0: The generated code assumes that "dest" points to the global memory
+  address space. If it points to a local memory address space, replace
+  "dpct::atomic_fetch_add" with "dpct::atomic_fetch_add<int,
+  sycl::access::address_space::local_space>".
+  */
+  return sycl::atomic<int>(sycl::global_ptr<int>(dest)).fetch_add(val);
 #else
   int oldval = *dest;
   *dest += val;

@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_config.h>
 #include <Omega_h_cmdline.hpp>
 #include <Omega_h_library.hpp>
@@ -137,6 +141,8 @@ void Library::initialize(char const* head_desc, int* argc, char*** argv
   // trigger lazy initialization of the CUDA runtime
   // and prevent it from polluting later timings
   cudaFree(nullptr);
+#if defined(OMEGA_H_USE_SYCL) && (!defined(OMEGA_H_USE_KOKKOS))
+  sycl::free(nullptr, dpct::get_default_queue()); //FIXME
 #endif
   if (cmdline.parsed("--osh-pool")) enable_pooling();
 }

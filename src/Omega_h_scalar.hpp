@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_SCALAR_HPP
 #define OMEGA_H_SCALAR_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_defines.hpp>
 #include <Omega_h_fail.hpp>
 #include <cfloat>
@@ -179,12 +183,12 @@ struct Root<1> {
 
 template <>
 struct Root<2> {
-  static OMEGA_H_INLINE Real eval(Real x) noexcept { return std::sqrt(x); }
+  static OMEGA_H_INLINE Real eval(Real x) noexcept { return ohMath::sqrt((double)x); }
 };
 
 template <>
 struct Root<3> {
-  static OMEGA_H_INLINE Real eval(Real x) noexcept { return std::cbrt(x); }
+  static OMEGA_H_INLINE Real eval(Real x) noexcept { return ohMath::cbrt((double)x); }
 };
 
 template <Int p>
@@ -265,12 +269,15 @@ OMEGA_H_INLINE Real power(Real x, Int np, Int dp) noexcept {
 
 OMEGA_H_INLINE Real rel_diff_with_floor(
     Real a, Real b, Real floor = EPSILON) noexcept {
-  Real am = std::abs(a);
-  Real bm = std::abs(b);
+  Real am = ohMath::fabs(a);
+  Real bm = ohMath::fabs(b);
   if (am <= floor && bm <= floor) return 0.0;
-  return std::abs(b - a) / max2(am, bm);
+  return ohMath::fabs(b - a) / max2(am, bm);
 }
 
+#if defined(OMEGA_H_USE_SYCL)
+SYCL_EXTERNAL 
+#endif
 OMEGA_H_INLINE bool are_close(
     Real a, Real b, Real tol = EPSILON, Real floor = EPSILON) noexcept {
   return rel_diff_with_floor(a, b, floor) <= tol;
@@ -354,11 +361,11 @@ struct multiplies {
 // First radius: (6 * EPS)^(.5)
 // Second radius: (120 * EPS)^(.25)
 OMEGA_H_INLINE Real sin_x_over_x(Real x) {
-  auto const y = std::abs(x);
-  auto const e2 = std::sqrt(DBL_EPSILON);
-  auto const e4 = std::sqrt(e2);
+  auto const y = ohMath::fabs(x);
+  auto const e2 = ohMath::sqrt(DBL_EPSILON);
+  auto const e4 = ohMath::sqrt((double)e2);
   if (y > e4) {
-    return std::sin(y) / y;
+    return ohMath::sin((double)y) / y;
   } else if (y > e2) {
     return 1.0 - y * y / 6.0;
   } else {

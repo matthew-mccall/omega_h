@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_METRIC_HPP
 #define OMEGA_H_METRIC_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_eigen.hpp>
 
 namespace Omega_h {
@@ -19,7 +23,7 @@ metric_product(Tensor<1> const m, Vector<space_dim> const v) {
 template <Int metric_dim, Int space_dim>
 OMEGA_H_INLINE Real metric_length(
     Tensor<metric_dim> const m, Vector<space_dim> const v) {
-  return std::sqrt(metric_product(m, v));
+  return ohMath::sqrt((double)(metric_product(m, v)));
 }
 
 template <Int dim>
@@ -29,7 +33,7 @@ OMEGA_H_INLINE Real metric_desired_length(
 }
 
 OMEGA_H_INLINE Real metric_length_from_eigenvalue(Real const l) {
-  return 1.0 / std::sqrt(l);
+  return 1.0 / ohMath::sqrt((double)l);
 }
 
 OMEGA_H_INLINE Real metric_eigenvalue_from_length(Real const h) {

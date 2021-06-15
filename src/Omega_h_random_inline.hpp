@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_RANDOM_INLINE_HPP
 #define OMEGA_H_RANDOM_INLINE_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <random123/philox.h>
 #include <Omega_h_few.hpp>
 #include <Omega_h_scalar.hpp>
@@ -109,9 +113,9 @@ class StandardNormalDistribution {
          here, but again I want the number of uniform deviates generated
          to be a known constant, not a function of their values */
       if (U_1 == 0.0) U_1 = DBL_MIN;
-      auto common = std::sqrt(-2.0 * std::log(U_1));
-      state[0] = common * std::cos(2.0 * Omega_h::PI * U_2);
-      state[1] = common * std::sin(2.0 * Omega_h::PI * U_2);
+      auto common = ohMath::sqrt(-2.0 * ohMath::log(U_1));
+      state[0] = common * ohMath::cos(2.0 * Omega_h::PI * U_2);
+      state[1] = common * ohMath::sin(2.0 * Omega_h::PI * U_2);
       ret = state[0];
     }
     return ret;
@@ -130,12 +134,13 @@ https://en.wikipedia.org/wiki/Weibull_distribution#Cumulative_distribution_funct
 OMEGA_H_INLINE Real weibull_quantile(Real shape, Real scale, Real p) {
   auto one_minus_p = 1.0 - p;
   if (one_minus_p == 0) one_minus_p = DBL_MIN;
-  return scale * std::pow(double(-std::log(one_minus_p)), double(1.0 / shape));
+  return scale * ohMath::pow<double>(double(-ohMath::log(one_minus_p)),
+                                   double(1.0 / shape));
 }
 
 OMEGA_H_INLINE Real standard_normal_density(Real value) {
   constexpr auto one_over_sqrt_two_pi = 0.3989422804014327;
-  return one_over_sqrt_two_pi * std::exp((-1.0 / 2.0) * square(value));
+  return one_over_sqrt_two_pi * ohMath::exp((-1.0 / 2.0) * square(value));
 }
 
 OMEGA_H_INLINE Real general_normal_density(
@@ -146,8 +151,8 @@ OMEGA_H_INLINE Real general_normal_density(
 
 OMEGA_H_INLINE Real weibull_density(Real shape, Real scale, Real value) {
   if (value < 0.0) return 0.0;
-  return (shape / scale) * std::pow(value / scale, shape - 1.0) *
-         std::exp(-std::pow(value / scale, shape));
+  return (shape / scale) * ohMath::pow<double>(value / scale, shape - 1.0) *
+         ohMath::exp(-ohMath::pow<double>(value / scale, shape));
 }
 
 // regularized lower incomplete gamma function, by series expansion
@@ -160,8 +165,8 @@ OMEGA_H_INLINE Real regularized_lower_incomplete_gamma(Real s, Real z) {
     if (sum > 1e100) return 1.0;
     if (x / sum < 1e-14) break;
   }
-  auto a = s * std::log(z) - z - std::lgamma(s + 1.0);
-  return std::exp(a + std::log(sum));
+  auto a = s * ohMath::log((double)z) - z - ohMath::lgamma(s + 1.0);
+  return ohMath::exp(a + ohMath::log((double)sum));
 }
 
 OMEGA_H_INLINE Real cumulative_chi_squared_density(
@@ -171,7 +176,7 @@ OMEGA_H_INLINE Real cumulative_chi_squared_density(
 }
 
 OMEGA_H_INLINE Real cumulative_standard_normal_density(Real x) {
-  return (1.0 / 2.0) * (1.0 + std::erf(x / std::sqrt(2.0)));
+  return (1.0 / 2.0) * (1.0 + ohMath::erf(x / ohMath::sqrt(2.0)));
 }
 
 OMEGA_H_INLINE Real cumulative_general_normal_density(
@@ -180,7 +185,7 @@ OMEGA_H_INLINE Real cumulative_general_normal_density(
 }
 
 OMEGA_H_INLINE Real cumulative_weibull_density(Real shape, Real scale, Real x) {
-  return 1.0 - std::exp(-std::pow(x / scale, shape));
+  return 1.0 - ohMath::exp(-ohMath::pow<double>(x / scale, shape));
 }
 
 }  // namespace Omega_h

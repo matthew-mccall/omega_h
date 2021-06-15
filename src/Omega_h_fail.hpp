@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_FAIL_HPP
 #define OMEGA_H_FAIL_HPP
 
+#if defined(OMEGA_H_USE_SYCL) 
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_config.h>
 #include <cassert>
 
@@ -34,6 +38,8 @@ void fail(char const* format, ...);
 #if defined(OMEGA_H_USE_CUDA) && (defined(__clang__) || defined(_MSC_VER))
 #define OMEGA_H_CHECK(cond) assert(cond)
 #elif defined(__CUDA_ARCH__)
+#define OMEGA_H_CHECK(cond) assert(cond)
+#elif defined(OMEGA_H_USE_SYCL)
 #define OMEGA_H_CHECK(cond) assert(cond)
 #else
 #define OMEGA_H_CHECK(cond)                                                    \

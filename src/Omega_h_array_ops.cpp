@@ -1,9 +1,14 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_array_ops.hpp"
 
 #include "Omega_h_for.hpp"
 #include "Omega_h_functors.hpp"
 #include "Omega_h_int_iterator.hpp"
 #include "Omega_h_reduce.hpp"
+#include <cmath>
 
 namespace Omega_h {
 
@@ -92,7 +97,7 @@ bool are_close_abs(Reals a, Reals b, Real tol) {
   auto const init = true;
   auto const op = logical_and<bool>();
   auto transform = OMEGA_H_LAMBDA(LO i)->bool {
-    return (std::abs(a[i] - b[i]) <= tol);
+    return (ohMath::fabs(a[i] - b[i]) <= tol);
   };
   auto const res =
       transform_reduce(first, last, init, op, std::move(transform));
@@ -177,7 +182,7 @@ Reals divide_each_maybe_zero(Reals a, Reals b) {
 Reals pow_each(Reals a, Reals b) {
   OMEGA_H_CHECK(a.size() == b.size());
   Write<Real> c(a.size());
-  auto f = OMEGA_H_LAMBDA(LO i) { c[i] = std::pow(a[i], b[i]); };
+  auto f = OMEGA_H_LAMBDA(LO i) { c[i] = ohMath::pow<double>(a[i], b[i]); };
   parallel_for(a.size(), f, "pow_each");
   return c;
 }
@@ -395,7 +400,7 @@ Bytes bit_neg_each(Bytes a) {
 
 Read<Real> fabs_each(Read<Real> a) {
   Write<Real> b(a.size());
-  auto f = OMEGA_H_LAMBDA(LO i) { b[i] = std::abs(a[i]); };
+  auto f = OMEGA_H_LAMBDA(LO i) { b[i] = ohMath::fabs(a[i]); };
   parallel_for(a.size(), f, "fabs_each");
   return b;
 }
@@ -513,7 +518,18 @@ int max_exponent(Reals a) {
   auto const op = maximum<int>();
   auto transform = OMEGA_H_LAMBDA(LO i)->int {
     int expo;
+#if defined(OMEGA_H_USE_SYCL)
+    /*
+    DPCT1017:6: The sycl::frexp call is used instead of the frexp call. These
+    two calls do not provide exactly the same functionality. Check the potential
+    precision and/or performance issues for the generated code.
+    */
+    sycl::frexp(
+        a[i],
+        sycl::make_ptr<int, sycl::access::address_space::global_space>(&expo));
+#else
     std::frexp(a[i], &expo);
+#endif
     return expo;
   };
   return transform_reduce(first, last, init, op, std::move(transform));

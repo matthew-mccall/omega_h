@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_EIGEN_HPP
 #define OMEGA_H_EIGEN_HPP
 
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_matrix.hpp>
 
 namespace Omega_h {
@@ -35,8 +39,8 @@ OMEGA_H_INLINE Roots<3> find_polynomial_roots(
   Real D = cube(Q) + square(R);
   Real shift = -a_2 / 3.;
   if (D >= 0.0) {
-    Real S = std::cbrt(R + std::sqrt(D));
-    Real T = std::cbrt(R - std::sqrt(D));
+    Real S = ohMath::cbrt(R + ohMath::sqrt((double)D));
+    Real T = ohMath::cbrt(R - ohMath::sqrt((double)D));
     Real B = S + T;
     Real z_1 = shift + B;
     Real z_23_real = shift - (1. / 2.) * B;
@@ -46,12 +50,12 @@ OMEGA_H_INLINE Roots<3> find_polynomial_roots(
     roots[1] = roots[2] = z_23_real;
   } else {
     // D < 0 implies Q < 0, since R^2 must be positive
-    auto cos_theta = R / std::sqrt(-cube(Q));
-    Real theta = std::acos(clamp(cos_theta, -1.0, 1.0));
-    Real radius = 2. * std::sqrt(-Q);
-    Real z_1 = radius * std::cos((theta) / 3.) + shift;
-    Real z_2 = radius * std::cos((theta + 2. * PI) / 3.) + shift;
-    Real z_3 = radius * std::cos((theta - 2. * PI) / 3.) + shift;
+    auto cos_theta = R / ohMath::sqrt(-cube(Q));
+    Real theta = ohMath::acos((double)(clamp(cos_theta, -1.0, 1.0)));
+    Real radius = 2. * ohMath::sqrt((double)(-Q));
+    Real z_1 = radius * ohMath::cos((theta) / 3.) + shift;
+    Real z_2 = radius * ohMath::cos((theta + 2. * PI) / 3.) + shift;
+    Real z_3 = radius * ohMath::cos((theta - 2. * PI) / 3.) + shift;
     roots[0] = z_1;
     roots[1] = z_2;
     roots[2] = z_3;
@@ -61,11 +65,11 @@ OMEGA_H_INLINE Roots<3> find_polynomial_roots(
   // close enough to be called repeated roots
   // first step, if two roots are close, then
   // move them to the second and third slots
-  if (std::abs(roots[0] - roots[1]) < eps) {
+  if (ohMath::fabs(roots[0] - roots[1]) < eps) {
     swap2(roots[0], roots[2]);
-  } else if (std::abs(roots[0] - roots[2]) < eps) {
+  } else if (ohMath::fabs(roots[0] - roots[2]) < eps) {
     swap2(roots[0], roots[1]);
-  } else if (std::abs(roots[1] - roots[2]) < eps) {
+  } else if (ohMath::fabs(roots[1] - roots[2]) < eps) {
     // no need to swap, they're already there
   } else {
     // no pairs were close, all three roots are distinct
@@ -75,7 +79,7 @@ OMEGA_H_INLINE Roots<3> find_polynomial_roots(
   roots[1] = average(roots[1], roots[2]);
   mults[1] = 2;
   // lets see if they are all the same
-  if (std::abs(roots[0] - roots[1]) < eps) {
+  if (ohMath::fabs(roots[0] - roots[1]) < eps) {
     // roots[1] is already an average, weight it properly
     roots[0] = (1. / 3.) * roots[0] + (2. / 3.) * roots[1];
     mults[0] = 3;
@@ -94,7 +98,7 @@ OMEGA_H_INLINE Roots<2> find_polynomial_roots(
   Few<Int, 2> mults;
   mults[0] = mults[1] = 0;
   Real disc = square(a) - 4. * b;
-  if (std::abs(disc) < eps) {
+  if (ohMath::fabs(disc) < eps) {
     mults[0] = 2;
     roots[0] = -a / 2.;
     roots[1] = roots[0];
@@ -104,8 +108,8 @@ OMEGA_H_INLINE Roots<2> find_polynomial_roots(
   if (disc > 0.0) {
     mults[0] = 1;
     mults[1] = 1;
-    roots[0] = (-a + std::sqrt(disc)) / 2.;
-    roots[1] = (-a - std::sqrt(disc)) / 2.;
+    roots[0] = (-a + ohMath::sqrt((double)disc)) / 2.;
+    roots[1] = (-a - ohMath::sqrt((double)disc)) / 2.;
     return {2, roots, mults};
   }
   return {0, roots, mults};
@@ -347,7 +351,7 @@ OMEGA_H_INLINE Real norm_off_diag(Tensor<dim> const a) {
       }
     }
   }
-  return std::sqrt(s);
+  return ohMath::sqrt((double)s);
 }
 
 // R^N arg max off-diagonal. Useful for SVD and other algorithms
@@ -384,11 +388,11 @@ OMEGA_H_INLINE Vector<2> schur_sym(Real f, Real g, Real h) {
   if (g != 0.0) {
     Real t = (h - f) / (2.0 * g);
     if (t >= 0.0) {
-      t = 1.0 / (std::sqrt(1.0 + square(t)) + t);
+      t = 1.0 / (ohMath::sqrt(1.0 + square(t)) + t);
     } else {
-      t = -1.0 / (std::sqrt(1.0 + square(t)) - t);
+      t = -1.0 / (ohMath::sqrt(1.0 + square(t)) - t);
     }
-    c = 1.0 / std::sqrt(1.0 + square(t));
+    c = 1.0 / ohMath::sqrt(1.0 + square(t));
     s = t * c;
   }
   return vector_2(c, s);
@@ -474,7 +478,7 @@ template <Int dim>
 OMEGA_H_INLINE_BIG Tensor<dim> log_spd_old(
     Tensor<dim> const m) OMEGA_H_NOEXCEPT {
   auto decomp = decompose_eigen(m);
-  for (Int i = 0; i < dim; ++i) decomp.l[i] = std::log(decomp.l[i]);
+  for (Int i = 0; i < dim; ++i) decomp.l[i] = ohMath::log(decomp.l[i]);
   return compose_ortho(decomp.q, decomp.l);
 }
 
@@ -483,7 +487,7 @@ template <Int dim>
 OMEGA_H_INLINE_BIG Tensor<dim> exp_spd_old(
     Tensor<dim> const m) OMEGA_H_NOEXCEPT {
   auto decomp = decompose_eigen(m);
-  for (Int i = 0; i < dim; ++i) decomp.l[i] = std::exp(decomp.l[i]);
+  for (Int i = 0; i < dim; ++i) decomp.l[i] = ohMath::exp(decomp.l[i]);
   return compose_ortho(decomp.q, decomp.l);
 }
 

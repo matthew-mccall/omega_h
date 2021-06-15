@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include "Omega_h_conserve.hpp"
 
 #include <array>
@@ -662,7 +666,7 @@ struct AllBounded : public AndFunctor {
   Real b;
   AllBounded(Reals a_, Real b_) : a(a_), b(b_) {}
   OMEGA_H_DEVICE void operator()(LO i, value_type& update) const {
-    update = update && (std::abs(a[i]) <= b);
+    update = update && (ohMath::fabs(a[i]) <= b);
   }
 };
 

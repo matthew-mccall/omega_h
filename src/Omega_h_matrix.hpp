@@ -1,6 +1,10 @@
 #ifndef OMEGA_H_MATRIX_HPP
 #define OMEGA_H_MATRIX_HPP
 
+#if defined(OMEGAH_U_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_array.hpp>
 #include <Omega_h_vector.hpp>
 
@@ -227,13 +231,17 @@ template <Int m, Int n>
 OMEGA_H_INLINE Real max_norm(Matrix<m, n> a) {
   Real x = 0.0;
   for (Int j = 0; j < n; ++j)
-    for (Int i = 0; i < m; ++i) x = max2(x, std::abs(a[j][i]));
+    for (Int i = 0; i < m; ++i) x = max2(x, ohMath::fabs(a[j][i]));
   return x;
 }
 
 template <Int m, Int n>
-OMEGA_H_INLINE bool are_close(
-    Matrix<m, n> a, Matrix<m, n> b, Real tol = EPSILON, Real floor = EPSILON) {
+#if defined(OMEGAH_U_USE_SYCL)
+SYCL_EXTERNAL 
+#endif
+OMEGA_H_INLINE bool are_close(Matrix<m, n> a, Matrix<m, n> b,
+                                            Real tol = EPSILON,
+                                            Real floor = EPSILON) {
   for (Int j = 0; j < n; ++j)
     if (!are_close(a[j], b[j], tol, floor)) return false;
   return true;
@@ -329,10 +337,16 @@ OMEGA_H_INLINE Vector<3> uncross(Tensor<3> const c) {
          vector_3(c[1][2] - c[2][1], c[2][0] - c[0][2], c[0][1] - c[1][0]);
 }
 
+#if defined(OMEGAH_U_USE_SYCL)
+SYCL_EXTERNAL 
+#endif
 OMEGA_H_INLINE Tensor<1> invert(Tensor<1> const m) {
   return matrix_1x1(1.0 / m[0][0]);
 }
 
+#if defined(OMEGAH_U_USE_SYCL)
+SYCL_EXTERNAL
+#endif
 OMEGA_H_INLINE Tensor<2> invert(Tensor<2> const m) {
   Real a = m[0][0];
   Real b = m[1][0];
@@ -341,6 +355,9 @@ OMEGA_H_INLINE Tensor<2> invert(Tensor<2> const m) {
   return matrix_2x2(d, -b, -c, a) / determinant(m);
 }
 
+#if defined(OMEGAH_U_USE_SYCL)
+SYCL_EXTERNAL
+#endif
 OMEGA_H_INLINE Tensor<3> invert(Tensor<3> const a) {
   Tensor<3> b;
   b[0] = cross(a[1], a[2]);
@@ -523,25 +540,25 @@ OMEGA_H_DEVICE Matrix<m, n> get_matrix(Arr const& matrices, Int const i) {
 
 /* Rodrigues' Rotation Formula */
 OMEGA_H_INLINE Tensor<3> rotate(Real const angle, Vector<3> const axis) {
-  return std::cos(angle) * identity_matrix<3, 3>() +
-         std::sin(angle) * cross(axis) +
-         (1 - std::cos(angle)) * outer_product(axis, axis);
+  return ohMath::cos((double)angle) * identity_matrix<3, 3>() +
+         ohMath::sin((double)angle) * cross(axis) +
+         (1 - ohMath::cos((double)angle)) * outer_product(axis, axis);
 }
 
 OMEGA_H_INLINE Tensor<2> rotate(Real const angle) {
-  return matrix_2x2(
-      std::cos(angle), -std::sin(angle), std::sin(angle), std::cos(angle));
+  return matrix_2x2(ohMath::cos((double)angle), -ohMath::sin((double)angle),
+                    ohMath::sin((double)angle), ohMath::cos((double)angle));
 }
 
 OMEGA_H_INLINE Real rotation_angle(Tensor<2> const r) {
   auto const cos_theta = 0.5 * trace(r);
   auto const sin_theta = 0.5 * (r(1, 0) - r(0, 1));
-  return std::atan2(sin_theta, cos_theta);
+  return ohMath::atan2((double)sin_theta, (double)cos_theta);
 }
 
 OMEGA_H_INLINE Real rotation_angle(Tensor<3> const r) {
   auto const cos_theta = 0.5 * (trace(r) - 1.0);
-  return std::acos(cos_theta);
+  return ohMath::acos((double)cos_theta);
 }
 
 OMEGA_H_INLINE Tensor<1> form_ortho_basis(Vector<1> const v) {
@@ -561,7 +578,7 @@ OMEGA_H_INLINE Tensor<2> form_ortho_basis(Vector<2> const v) {
 OMEGA_H_INLINE Tensor<3> form_ortho_basis(Vector<3> const v) {
   Tensor<3> A;
   A[0] = v;
-  auto sign = std::copysign(1.0, v(2));
+  auto sign = ohMath::copysign(1.0, (double)(v(2)));
   const auto a = -1.0 / (sign + v(2));
   const auto b = v(0) * v(1) * a;
   A[1] = vector_3(1.0 + sign * v(0) * v(0) * a, sign * b, -sign * v(0));

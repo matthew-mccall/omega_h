@@ -1,3 +1,7 @@
+#if defined(OMEGA_H_USE_SYCL)
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <Omega_h_fail.hpp>
 #include <Omega_h_malloc.hpp>
 #include <Omega_h_pool.hpp>
@@ -6,7 +10,11 @@
 
 namespace Omega_h {
 
-void* device_malloc(std::size_t size) {
+void *device_malloc(std::size_t size)
+#if defined(OMEGA_H_USE_SYCL)
+  try 
+#endif
+{
   OMEGA_H_TIME_FUNCTION;
 #ifdef OMEGA_H_USE_CUDA
   void* tmp_ptr;
@@ -16,22 +24,53 @@ void* device_malloc(std::size_t size) {
   if (err == cudaErrorMemoryAllocation) return nullptr;
   OMEGA_H_CHECK(err == cudaSuccess);
   return tmp_ptr;
+#elif defined(OMEGA_H_USE_SYCL)
+  void* tmp_ptr;
+  auto sycl_malloc_size = size;
+  if (sycl_malloc_size < 1) sycl_malloc_size = 1;
+  tmp_ptr = (void *)sycl::malloc_device(
+                        sycl_malloc_size, dpct::get_default_queue());
+  return tmp_ptr;
 #else
   return ::std::malloc(size);
 #endif
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
-void device_free(void* ptr, std::size_t) {
+void device_free(void *ptr, std::size_t)
+#if defined(OMEGA_H_USE_SYCL)
+  try 
+#endif
+{
   OMEGA_H_TIME_FUNCTION;
 #ifdef OMEGA_H_USE_CUDA
   auto const err = cudaFree(ptr);
   OMEGA_H_CHECK(err == cudaSuccess);
+#elif defined(OMEGA_H_USE_SYCL)
+  sycl::free(ptr, dpct::get_default_queue());
 #else
   ::std::free(ptr);
 #endif
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
-void* host_malloc(std::size_t size) {
+void* host_malloc(std::size_t size)
+#if defined(OMEGA_H_USE_SYCL)
+  try 
+#endif
+{
   OMEGA_H_TIME_FUNCTION;
 #ifdef OMEGA_H_USE_CUDA
   void* tmp_ptr;
@@ -41,20 +80,47 @@ void* host_malloc(std::size_t size) {
   if (err == cudaErrorMemoryAllocation) return nullptr;
   OMEGA_H_CHECK(err == cudaSuccess);
   return tmp_ptr;
+#elif defined(OMEGA_H_USE_SYCL)
+  void* tmp_ptr;
+  auto sycl_malloc_size = size;
+  if (sycl_malloc_size < 1) sycl_malloc_size = 1;
+  tmp_ptr = (void *)sycl::malloc_host(
+                        sycl_malloc_size, dpct::get_default_queue());
+  return tmp_ptr;
 #else
   return ::std::malloc(size);
 #endif
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
-void host_free(void* ptr, std::size_t) {
+void host_free(void *ptr, std::size_t)
+#if defined(OMEGA_H_USE_SYCL)
+  try
+#endif
+{
   OMEGA_H_TIME_FUNCTION;
 #ifdef OMEGA_H_USE_CUDA
   auto const err = cudaFreeHost(ptr);
   OMEGA_H_CHECK(err == cudaSuccess);
+#elif defined(OMEGA_H_USE_SYCL)
+  sycl::free(ptr, dpct::get_default_queue());
 #else
   ::std::free(ptr);
 #endif
 }
+#if defined(OMEGA_H_USE_SYCL)
+catch (sycl::exception const &exc) {
+  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+  std::exit(1);
+}
+#endif
 
 static Pool* device_pool = nullptr;
 static Pool* host_pool = nullptr;
