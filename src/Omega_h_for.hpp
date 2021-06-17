@@ -40,7 +40,7 @@ void for_each(InputIterator first, InputIterator last, UnaryFunction&& f) {
 #elif defined(OMEGA_H_USE_SYCL)
   std::for_each(
       oneapi::dpl::execution::make_device_policy(dpct::get_default_queue()),
-      thrust::device, first, last, f2);
+      first, last, f2);
 #elif defined(OMEGA_H_USE_OPENMP)
   LO const n = last - first;
 #pragma omp parallel for
