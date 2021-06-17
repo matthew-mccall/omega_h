@@ -22,9 +22,8 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #endif
 
-#include <dpct/dpl_utils.hpp>
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
+#include <thrust/execution_policy.h>
+#include <thrust/for_each.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
