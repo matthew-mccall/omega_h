@@ -46,7 +46,7 @@
 #define OMEGA_H_DEVICE __device__ inline
 #define OMEGA_H_LAMBDA [=] __device__
 #define OMEGA_H_CONSTANT_DATA __constant__
-#if defined(OMEGA_H_USE_SYCL)
+#elif defined(OMEGA_H_USE_SYCL)
 #define OMEGA_H_INLINE inline
 #define OMEGA_H_INLINE_BIG OMEGA_H_INLINE
 #define OMEGA_H_DEVICE inline
