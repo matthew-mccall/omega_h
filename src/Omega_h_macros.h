@@ -1,11 +1,15 @@
 #ifndef OMEGA_H_MACROS_H
 #define OMEGA_H_MACROS_H
 
+#include <Omega_h_config.h>
+
 #if defined(OMEGA_H_USE_SYCL)
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
+namespace ohMath = sycl;
+#else
+namespace ohMath = std;
 #endif
-#include <Omega_h_config.h>
 
 #define OMEGA_H_STRINGIFY(s) #s
 /* apparently you need two macros to make a string */
@@ -82,10 +86,5 @@
 #define OMEGA_H_DLL
 #endif
 
-#if defined(OMEGA_H_USE_SYCL)
-namespace ohMath = sycl;
-#else
-namespace ohMath = std;
-#endif
 
 #endif
