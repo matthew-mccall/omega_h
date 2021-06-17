@@ -29,6 +29,11 @@ bob_option(Omega_h_USE_CUDA_AWARE_MPI "Assume MPI is CUDA-aware, make use of tha
 bob_option(Omega_h_USE_SimModSuite "Enable reading Simmetrix MeshSim meshes" OFF)
 bob_input(Omega_h_VALGRIND "" STRING "Valgrind plus arguments for testing")
 bob_option(Omega_h_EXAMPLES "Compile examples" OFF)
+bob_option(Omega_h_USE_SYCL "Build with the SYCL backend" OFF)
+
+if(Omega_h_USE_SYCL)
+  find_package(SYCL REQUIRED)
+endif()
 
 set(Omega_h_USE_ZLIB_DEFAULT ON)
 bob_add_dependency(PUBLIC NAME ZLIB TARGETS ZLIB::ZLIB)
@@ -126,6 +131,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_Kokkos
     Omega_h_USE_OpenMP
     Omega_h_USE_CUDA
+    Omega_h_USE_SYCL
     Omega_h_USE_ZLIB
     Omega_h_USE_libMeshb
     Omega_h_USE_EGADS
