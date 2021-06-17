@@ -29,8 +29,6 @@
 #define R3D_HPP
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <cfloat>
 #include <cmath>

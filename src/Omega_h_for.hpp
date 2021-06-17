@@ -1,10 +1,6 @@
 #ifndef OMEGA_H_FOR_HPP
 #define OMEGA_H_FOR_HPP
 
-#if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
-#endif
 #include <Omega_h_defines.hpp>
 #include <Omega_h_profile.hpp>
 
@@ -29,12 +25,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#endif
-
-#if defined(OMEGA_H_USE_SYCL) 
-#include <dpct/dpl_utils.hpp>
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
 #endif
 
 namespace Omega_h {

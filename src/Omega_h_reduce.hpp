@@ -6,8 +6,6 @@
 #endif
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <Omega_h_scalar.hpp>
 #include <Omega_h_shared_alloc.hpp>

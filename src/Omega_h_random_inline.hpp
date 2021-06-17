@@ -2,8 +2,6 @@
 #define OMEGA_H_RANDOM_INLINE_HPP
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <random123/philox.h>
 #include <Omega_h_few.hpp>

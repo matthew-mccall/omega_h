@@ -4,8 +4,11 @@
 #include <Omega_h_config.h>
 
 #if defined(OMEGA_H_USE_SYCL)
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/algorithm>
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
+#include <dpct/dpl_utils.hpp>
 namespace ohMath = sycl;
 #else
 namespace ohMath = std;

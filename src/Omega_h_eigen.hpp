@@ -2,8 +2,6 @@
 #define OMEGA_H_EIGEN_HPP
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <Omega_h_matrix.hpp>
 

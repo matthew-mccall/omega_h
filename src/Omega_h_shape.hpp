@@ -2,8 +2,6 @@
 #define OMEGA_H_SHAPE_HPP
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <Omega_h_adj.hpp>
 #include <Omega_h_affine.hpp>

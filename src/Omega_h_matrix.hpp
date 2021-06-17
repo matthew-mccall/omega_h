@@ -2,8 +2,6 @@
 #define OMEGA_H_MATRIX_HPP
 
 #if defined(OMEGAH_U_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <Omega_h_array.hpp>
 #include <Omega_h_vector.hpp>

@@ -2,8 +2,6 @@
 #define OMEGA_H_MOST_NORMAL_HPP
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <Omega_h_vector.hpp>
 

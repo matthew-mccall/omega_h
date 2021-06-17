@@ -2,8 +2,6 @@
 #define OMEGA_H_SHARED_ALLOC_HPP
 
 #if defined(OMEGA_H_USE_SYCL)
-#include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
 #endif
 #include <Omega_h_macros.h>
 #include <cstddef>
