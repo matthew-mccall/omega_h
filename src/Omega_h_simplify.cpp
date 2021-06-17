@@ -23,23 +23,25 @@ namespace Omega_h {
 
 namespace {
 
-#define OMEGA_H_DEFINE_CONSTANT_1D(name,x,vals) { \
-#if defined(OMEGA_H_USE_SYCL)
-static dpct::constant_memory<const Int, 1> \
-    (name)(sycl::range<1>((x)), (vals) ); \
-#else
-OMEGA_H_CONSTANT_DATA static Int const (name)[(x)] = vals; \
-#endif
-}
+#define ESC(...) __VA_ARGS__
 
-#define OMEGA_H_DEFINE_CONSTANT_2D(name,x,y,vals) { \
 #if defined(OMEGA_H_USE_SYCL)
-static dpct::constant_memory<const Int, 2> \
-    (name)(sycl::range<2>((x),(y)), (vals) ); \
+  #define OMEGA_H_DEFINE_CONSTANT_1D(name,x,vals) \
+    static dpct::constant_memory<const Int, 1> \
+        (name)(sycl::range<1>((x)), ESC vals  );
 #else
-OMEGA_H_CONSTANT_DATA static Int const (name)[(x)][(y)] = (vals); \
+  #define OMEGA_H_DEFINE_CONSTANT_1D(name,x,vals) \
+    OMEGA_H_CONSTANT_DATA static Int const (name)[(x)] = ESC vals ;
 #endif
-}
+
+#if defined(OMEGA_H_USE_SYCL)
+  #define OMEGA_H_DEFINE_CONSTANT_2D(name,x,y,vals) \
+    static dpct::constant_memory<const Int, 2> \
+        (name)(sycl::range<2>((x),(y)), ESC vals  );
+#else
+  #define OMEGA_H_DEFINE_CONSTANT_2D(name,x,y,vals) \
+    OMEGA_H_CONSTANT_DATA static Int const (name)[(x)][(y)] = ESC vals ;
+#endif
 
 OMEGA_H_INLINE Int find_min(LO const v[], Int n) {
   Int min_i = 0;
@@ -72,7 +74,7 @@ OMEGA_H_INLINE void rot_to_first(LO v[], Int nv, Int first) {
 }
 
 /* quad to tri template */
-OMEGA_H_DEFINE_CONSTANT_2D(qtv2qqv, 2, 3, {{0, 1, 2}, {2, 3, 0}});
+OMEGA_H_DEFINE_CONSTANT_2D(qtv2qqv, 2, 3, ({{0, 1, 2}, {2, 3, 0}}));
 
 /* below are the hex-to-tet templates for the
    four unique cases identified by Dompierre et al.
@@ -81,25 +83,25 @@ OMEGA_H_DEFINE_CONSTANT_2D(qtv2qqv, 2, 3, {{0, 1, 2}, {2, 3, 0}});
 
 /* tets from a hex with no diagonals
    into the back-upper-right corner */
-OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_0, 5, 4, {
-    {0, 1, 2, 5}, {0, 2, 7, 5}, {0, 2, 3, 7}, {0, 5, 7, 4}, {2, 7, 5, 6}});
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_0, 5, 4, ({
+    {0, 1, 2, 5}, {0, 2, 7, 5}, {0, 2, 3, 7}, {0, 5, 7, 4}, {2, 7, 5, 6}}));
 /* tets from a hex with 1 diagonal
    into the back-upper-right corner,
    on the right face */
-OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_1, 6, 4, {{0, 5, 7, 4}, {0, 1, 7, 5},
-    {1, 6, 7, 5}, {0, 7, 2, 3}, {0, 7, 1, 2}, {1, 7, 6, 2}});
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_1, 6, 4, ({{0, 5, 7, 4}, {0, 1, 7, 5},
+    {1, 6, 7, 5}, {0, 7, 2, 3}, {0, 7, 1, 2}, {1, 7, 6, 2}}));
 /* tets from a hex with 2 diagonals
    into the back-upper-right corner,
    none on the right face */
-OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_2, 6, 4, {{0, 4, 5, 6}, {0, 3, 7, 6},
-    {0, 7, 4, 6}, {0, 1, 2, 5}, {0, 3, 6, 2}, {0, 6, 5, 2}});
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_2, 6, 4, ({{0, 4, 5, 6}, {0, 3, 7, 6},
+    {0, 7, 4, 6}, {0, 1, 2, 5}, {0, 3, 6, 2}, {0, 6, 5, 2}}));
 /* tets from a hex with 3 diagonals
    into the back-upper-right corner */
-OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_3, 6, 4, {{0, 2, 3, 6}, {0, 3, 7, 6},
-    {0, 7, 4, 6}, {0, 5, 6, 4}, {1, 5, 6, 0}, {1, 6, 2, 0}});
+OMEGA_H_DEFINE_CONSTANT_2D(htv2hhv_3, 6, 4, ({{0, 2, 3, 6}, {0, 3, 7, 6},
+    {0, 7, 4, 6}, {0, 5, 6, 4}, {1, 5, 6, 0}, {1, 6, 2, 0}}));
 
-OMEGA_H_DEFINE_CONSTANT_2D(hex_flip_pairs, 4, 2, {
-    {0, 4}, {3, 5}, {1, 7}, {2, 6}});
+OMEGA_H_DEFINE_CONSTANT_2D(hex_flip_pairs, 4, 2, ({
+    {0, 4}, {3, 5}, {1, 7}, {2, 6}}));
 
 OMEGA_H_DEVICE void flip_hex(LO hhv2v[]
 #if defined(OMEGA_H_USE_SYCL)
@@ -115,14 +117,14 @@ OMEGA_H_DEVICE void flip_hex(LO hhv2v[]
    corner, starting with the right face
    and curling around the centroidal XYZ axis.
    also, numbered with the corner vertex first */
-OMEGA_H_DEFINE_CONSTANT_2D(hex_bur_faces, 3, 4, {
-    {6, 5, 1, 2}, {6, 2, 3, 7}, {6, 7, 4, 5}});
+OMEGA_H_DEFINE_CONSTANT_2D(hex_bur_faces, 3, 4, ({
+    {6, 5, 1, 2}, {6, 2, 3, 7}, {6, 7, 4, 5}}));
 
 /* the vertices that rotate amonst one another
    when a hex is rotated around its centroidal
    XYZ axis (the line between the front-lower-left
    corner and the back-upper-right corner). */
-OMEGA_H_DEFINE_CONSTANT_1D(hex_bur_ring, 6, {1, 2, 3, 7, 5, 4});
+OMEGA_H_DEFINE_CONSTANT_1D(hex_bur_ring, 6, ({1, 2, 3, 7, 5, 4}));
 
 OMEGA_H_DEVICE void hex_bur_rot_ntimes(LO hhv2v[], Int ntimes
 #if defined(OMEGA_H_USE_SYCL)
@@ -148,7 +150,11 @@ OMEGA_H_DEVICE void hex_bur_rot_to_right(LO hhv2v[], Int new_right
     , const Int *hex_bur_ring
 #endif
   ) {
-  hex_bur_rot_ntimes(hhv2v, ((3 - new_right) % 3), hex_bur_ring);
+  hex_bur_rot_ntimes(hhv2v, ((3 - new_right) % 3)
+#if defined(OMEGA_H_USE_SYCL)
+      , hex_bur_ring
+#endif
+  );
 }
 }  // namespace
 
@@ -296,7 +302,7 @@ LOs tets_from_hexes(LOs hv2v) {
       hex_bur_rot_to_right(hhv2v, diag_face
 #if defined(OMEGA_H_USE_SYCL)
           , hex_bur_ring
-#if
+#endif
       );
       fill_tets_from_hex(tv2v, h2ht, h, hhv2v, htv2hhv_2, 6);
     } else {

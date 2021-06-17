@@ -1,7 +1,7 @@
 #ifndef OMEGA_H_ATOMICS_HPP
 #define OMEGA_H_ATOMICS_HPP
 
-#if defined(OMEGA_H_USE_SYCL
+#if defined(OMEGA_H_USE_SYCL)
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
 #endif
