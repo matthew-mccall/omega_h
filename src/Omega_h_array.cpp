@@ -268,16 +268,8 @@ HostWrite<T>::HostWrite(Write<T> write_in)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(write_.size())]);
-  /*
-  DPCT1003:3: Migrated API does not return error code. (*, 0) is inserted. You
-  may need to rewrite this code.
-  */
-  auto const err = (dpct::get_default_queue()
-                        .memcpy(mirror_.get(), write_.data(),
-                                std::size_t(write_.size()) * sizeof(T))
-                        .wait(),
-                    0);
-  OMEGA_H_CHECK(err == 0);
+  dpct::get_default_queue().memcpy(mirror_.get(), write_.data(),
+                                std::size_t(write_.size()) * sizeof(T)).wait();
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)

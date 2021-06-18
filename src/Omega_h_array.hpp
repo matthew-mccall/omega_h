@@ -187,6 +187,8 @@ class HostRead {
   typename Kokkos::View<const T*, Kokkos::HostSpace> mirror_;
 #elif defined(OMEGA_H_USE_CUDA)
   std::shared_ptr<T[]> mirror_;
+#elif defined(OMEGA_H_USE_SYCL)
+  std::shared_ptr<T[]> mirror_;
 #endif
  public:
   HostRead() = default;
@@ -201,10 +203,12 @@ class HostRead {
     return mirror_(i);
 #else
 #ifdef OMEGA_H_USE_CUDA
-#ifdef OMEGA_H_CHECK_BOUNDS
-    OMEGA_H_CHECK(0 <= i);
-    OMEGA_H_CHECK(i < size());
-#endif
+  #ifdef OMEGA_H_CHECK_BOUNDS
+      OMEGA_H_CHECK(0 <= i);
+      OMEGA_H_CHECK(i < size());
+  #endif
+    return mirror_[i];
+#elif defined(OMEGA_H_USE_SYCL)
     return mirror_[i];
 #else
     return read_[i];
@@ -222,6 +226,8 @@ class HostWrite {
 #ifdef OMEGA_H_USE_KOKKOS
   typename Kokkos::View<T*>::HostMirror mirror_;
 #elif defined(OMEGA_H_USE_CUDA)
+  std::shared_ptr<T[]> mirror_;
+#elif defined(OMEGA_H_USE_SYCL)
   std::shared_ptr<T[]> mirror_;
 #endif
  public:
@@ -245,6 +251,8 @@ class HostWrite {
     OMEGA_H_CHECK(0 <= i);
     OMEGA_H_CHECK(i < size());
 #endif
+    return mirror_[i];
+#elif defined(OMEGA_H_USE_SYCL)
     return mirror_[i];
 #else
     return write_[i];
