@@ -74,6 +74,11 @@ bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
 bob_option(Omega_h_USE_HIP "Whether to use HIP" OFF)
 
 if (Omega_h_USE_HIP)
+  #https://rocmdocs.amd.com/en/latest/Installation_Guide/Using-CMake-with-AMD-ROCm.html
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSION OFF)
+  set(CMAKE_CXX_STANDARD 11)
+  set(GPU_TARGETS "gfx908" CACHE STRING "HIP GPU targets to compile for")
   message(STATUS "HIP_PATH ${HIP_PATH}")
   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
   find_package(HIP MODULE REQUIRED)
