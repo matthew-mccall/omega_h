@@ -65,9 +65,15 @@ OMEGA_H_DEVICE Loop find_loop(LOs const& edges2edge_tets,
    * Remember, there are at most 7 edges to sort. */
   for (Int i = 0; i < loop.size - 1; ++i) {
     Int j;
+    Int swapCnt = 0;
+    Int found = 0;
     for (j = i + 1; j < loop.size; ++j) {
-      if (tmp_edges[j][0] == tmp_edges[i][1]) break;
+      if (tmp_edges[j][0] == tmp_edges[i][1]) {
+        found = j;
+        swapCnt++;
+      }
     }
+    OMEGA_H_CHECK(swapCnt == 1);
     OMEGA_H_CHECK(j < loop.size);
     swap2(tmp_edges[i + 1], tmp_edges[j]);
   }
