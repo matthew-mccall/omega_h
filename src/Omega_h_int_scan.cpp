@@ -22,14 +22,24 @@ LOs offset_scan(Read<T> a, std::string const& name) {
 template LOs offset_scan(Read<I8> a, std::string const& name);
 template LOs offset_scan(Read<I32> a, std::string const& name);
 
+template <typename T>
+struct simple_identity : public thrust::unary_function<T,T>
+{
+    __host__ __device__
+    T operator()(T x)
+    {
+        return x;
+    }
+};
+
 void fill_right(Write<LO> a) {
   OMEGA_H_TIME_FUNCTION;
   auto const first = a.begin();
   auto const last = a.end();
   auto const result = a.begin();
   auto const op = maximum<LO>();
-  auto transform = identity<LO>();
-  transform_inclusive_scan(first, last, result, op, std::move(transform));
+  auto transform = simple_identity<LO>();
+  Omega_h::transform_inclusive_scan(first, last, result, op, std::move(transform));
 }
 
 }  // end namespace Omega_h
