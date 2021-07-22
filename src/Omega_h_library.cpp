@@ -140,7 +140,7 @@ void Library::initialize(char const* head_desc, int* argc, char*** argv
   // and prevent it from polluting later timings
   cudaFree(nullptr);
 #elif defined(OMEGA_H_USE_SYCL) && (!defined(OMEGA_H_USE_KOKKOS))
-  sycl::free(nullptr, dpct::get_default_queue()); //FIXME
+  sycl::free(nullptr, oneapi::dpl::execution::dpcpp_default);
 #endif
   if (cmdline.parsed("--osh-pool")) enable_pooling();
 }

@@ -7,8 +7,6 @@
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/algorithm>
 #include <CL/sycl.hpp>
-#include <dpct/dpct.hpp>
-#include <dpct/dpl_utils.hpp>
 namespace ohMath = sycl;
 #else
 namespace ohMath = std;

@@ -51,9 +51,7 @@ static void parallel_sort(T* b, T* e, Comp c) {
   auto eptr = thrust::device_ptr<T>(e);
   thrust::stable_sort(bptr, eptr, c);
 #elif defined(OMEGA_H_USE_SYCL)
-  auto bptr = dpct::device_pointer<T>(b);
-  auto eptr = dpct::device_pointer<T>(e);
-  std::stable_sort(oneapi::dpl::execution::par_unseq,bptr, eptr, c);
+  std::stable_sort(oneapi::dpl::execution::par_unseq, b, e, c);
 #elif defined(OMEGA_H_USE_OPENMP)
   pss::parallel_stable_sort(b, e, c);
 #else

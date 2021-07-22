@@ -96,7 +96,7 @@ void Write<T>::set(LO i, T value) const {
 #if defined(OMEGA_H_USE_CUDA)
   cudaMemcpy(data() + i, &value, sizeof(T), cudaMemcpyHostToDevice);
 #elif defined(OMEGA_H_USE_SYCL)
-  dpct::get_default_queue().memcpy(data() + i, &value, sizeof(T)).wait();
+  std::copy(dpl::execution::dpcpp_default, &value, &value+1, data()+i);
 #else
   operator[](i) = value;
 #endif
@@ -111,7 +111,7 @@ T Write<T>::get(LO i) const {
   return value;
 #elif defined(OMEGA_H_USE_SYCL)
   T value;
-  dpct::get_default_queue().memcpy(&value, data() + i, sizeof(T)).wait();
+  std::copy(dpl::execution::dpcpp_default, data()+i, data()+i+1, &value);
   return value;
 #else
   return operator[](i);
@@ -268,8 +268,7 @@ HostWrite<T>::HostWrite(Write<T> write_in)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(write_.size())]);
-  dpct::get_default_queue().memcpy(mirror_.get(), write_.data(),
-                                std::size_t(write_.size()) * sizeof(T)).wait();
+  std::copy(dpl::execution::dpcpp_default, write_.data(), write_.data()+write_.size(), mirror_.get());
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)
@@ -302,16 +301,7 @@ Write<T> HostWrite<T>::write() const
       std::size_t(size()) * sizeof(T), cudaMemcpyHostToDevice);
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
-  /*
-  DPCT1003:4: Migrated API does not return error code. (*, 0) is inserted. You
-  may need to rewrite this code.
-  */
-  auto const err = (dpct::get_default_queue()
-                        .memcpy(write_.data(), mirror_.get(),
-                                std::size_t(size()) * sizeof(T))
-                        .wait(),
-                    0);
-  OMEGA_H_CHECK(err == 0);
+  std::copy(dpl::execution::dpcpp_default, mirror_.get(), mirror_.get()+size(), write_.data());
 #endif
   return write_;
 }
@@ -380,16 +370,7 @@ HostRead<T>::HostRead(Read<T> read)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(read_.size())]);
-  /*
-  DPCT1003:5: Migrated API does not return error code. (*, 0) is inserted. You
-  may need to rewrite this code.
-  */
-  auto const err =
-      (dpct::get_default_queue()
-           .memcpy(mirror_.get(), read_.data(), std::size_t(size()) * sizeof(T))
-           .wait(),
-       0);
-  OMEGA_H_CHECK(err == 0);
+  std::copy(dpl::execution::dpcpp_default, read_.data(), read_.data()+size(), mirror_.get());
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)

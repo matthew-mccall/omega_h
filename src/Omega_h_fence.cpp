@@ -1,7 +1,7 @@
 #include <Omega_h_fence.hpp>
 #include <Omega_h_fail.hpp>
 #if defined(OMEGA_H_USE_SYCL)
-#include <dpct/dpct.hpp>
+#include <oneapi/dpl/execution>
 #endif
 
 #ifdef OMEGA_H_USE_KOKKOS
@@ -21,7 +21,9 @@ void fence()
   auto const err = cudaDeviceSynchronize();
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
-  dpct::get_current_device().queues_wait_and_throw();
+  //dpct::get_current_device().queues_wait_and_throw();
+  auto queue = oneapi::dpl::execution::dpcpp_default.queue();
+  queue.wait();
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)

@@ -27,7 +27,7 @@ void *device_malloc(std::size_t size)
   auto sycl_malloc_size = size;
   if (sycl_malloc_size < 1) sycl_malloc_size = 1;
   tmp_ptr = (void *)sycl::malloc_device(
-                        sycl_malloc_size, dpct::get_default_queue());
+                        sycl_malloc_size, oneapi::dpl::execution::dpcpp_default);
   return tmp_ptr;
 #else
   return ::std::malloc(size);
@@ -51,7 +51,7 @@ void device_free(void *ptr, std::size_t)
   auto const err = cudaFree(ptr);
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
-  sycl::free(ptr, dpct::get_default_queue());
+  sycl::free(ptr, oneapi::dpl::execution::dpcpp_default);
 #else
   ::std::free(ptr);
 #endif
@@ -83,7 +83,7 @@ void* host_malloc(std::size_t size)
   auto sycl_malloc_size = size;
   if (sycl_malloc_size < 1) sycl_malloc_size = 1;
   tmp_ptr = (void *)sycl::malloc_host(
-                        sycl_malloc_size, dpct::get_default_queue());
+                        sycl_malloc_size, oneapi::dpl::execution::dpcpp_default);
   return tmp_ptr;
 #else
   return ::std::malloc(size);
@@ -107,7 +107,7 @@ void host_free(void *ptr, std::size_t)
   auto const err = cudaFreeHost(ptr);
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
-  sycl::free(ptr, dpct::get_default_queue());
+  sycl::free(ptr, oneapi::dpl::execution::dpcpp_default);
 #else
   ::std::free(ptr);
 #endif
