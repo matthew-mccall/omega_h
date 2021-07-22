@@ -84,7 +84,7 @@ bool are_close(Reals a, Reals b, Real tol, Real floor) {
     return are_close(a[i], b[i], tol, floor);
   };
   auto const res =
-      transform_reduce(first, last, init, op, std::move(transform));
+      Omega_h::transform_reduce(first, last, init, op, std::move(transform));
   return static_cast<bool>(res);
 }
 

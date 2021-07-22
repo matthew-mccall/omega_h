@@ -1,8 +1,6 @@
 #ifndef SWAP3D_CHOICE_HPP
 #define SWAP3D_CHOICE_HPP
 
-#if defined(OMEGA_H_USE_SYCL)
-#endif
 #include "Omega_h_swap3d_loop.hpp"
 
 namespace Omega_h {
@@ -16,16 +14,7 @@ struct Choice {
 
 template <typename QualityMeasure, typename LengthMeasure>
 OMEGA_H_DEVICE Choice choose(Loop loop, QualityMeasure const& quality_measure,
-    LengthMeasure const& length_measure, Real max_length_allowed
-#if defined(OMEGA_H_USE_SYCL)
-    ,
-    const Int *swap_mesh_sizes, const Int *swap_mesh_counts,
-    dpct::accessor<swap_tri_t, dpct::device, 2> swap_triangles,
-    dpct::accessor<Int, dpct::device, 2> swap_meshes,
-    dpct::accessor<IntPair, dpct::device, 2> unique_edges,
-    dpct::accessor<Int *, dpct::device, 2> edges2unique, const Int *nedges
-#endif
-    ) {
+    LengthMeasure const& length_measure, Real max_length_allowed) {
   auto nmeshes = swap_mesh_counts[loop.size];
   auto nmesh_tris = swap_mesh_sizes[loop.size];
   auto uniq_tris2loop_verts = swap_triangles[loop.size];

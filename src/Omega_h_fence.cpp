@@ -1,7 +1,8 @@
-#if defined(OMEGA_H_USE_SYCL)
-#endif
 #include <Omega_h_fence.hpp>
 #include <Omega_h_fail.hpp>
+#if defined(OMEGA_H_USE_SYCL)
+#include <dpct/dpct.hpp>
+#endif
 
 #ifdef OMEGA_H_USE_KOKKOS
 #include <Omega_h_kokkos.hpp>

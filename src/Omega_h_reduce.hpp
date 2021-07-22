@@ -83,8 +83,8 @@ Op native_op(Op const& op) {
   return op;
 }
 template <class T>
-thrust::logical_and<T> native_op(Omega_h::logical_and<T> const&) {
-  return thrust::logical_and<T>();
+std::logical_and<T> native_op(Omega_h::logical_and<T> const&) {
+  return std::logical_and<T>();
 }
 template <class T>
 std::plus<T> native_op(Omega_h::plus<T> const &) {
@@ -95,11 +95,11 @@ oneapi::dpl::maximum<T> native_op(Omega_h::maximum<T> const &) {
   return oneapi::dpl::maximum<T>();
 }
 template <class T>
-thrust::minimum<T> native_op(Omega_h::minimum<T> const&) {
-  return thrust::minimum<T>();
+oneapi::dpl::minimum<T> native_op(Omega_h::minimum<T> const&) {
+  return oneapi::dpl::minimum<T>();
 }
 template <class T>
-oneapi::dpl::identity<T> native_op(Omega_h::identity const &) {
+oneapi::dpl::identity native_op(Omega_h::identity<T> const &) {
   return oneapi::dpl::identity();
 }
 
@@ -109,9 +109,9 @@ Result transform_reduce(
   Omega_h::entering_parallel = true;
   auto const transform_parallel = std::move(transform);
   Omega_h::entering_parallel = false;
-  return std::transform_reduce(
-      oneapi::dpl::execution::make_device_policy(dpct::get_default_queue()),
-      thrust::device, first, last, init, native_op(op),
+  return oneapi::dpl::transform_reduce(
+      oneapi::dpl::execution::par_unseq,
+      first, last, init, native_op(op),
       native_op(transform_parallel));
 }
 

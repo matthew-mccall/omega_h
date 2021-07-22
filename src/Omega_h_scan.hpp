@@ -8,6 +8,8 @@
 #endif
 
 #if defined(OMEGA_H_USE_SYCL)
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/algorithm>
 #endif
 #include <Omega_h_defines.hpp>
 #include <Omega_h_profile.hpp>
@@ -90,18 +92,9 @@ OutputIterator transform_inclusive_scan(InputIterator first, InputIterator last,
 template <typename InputIterator, typename OutputIterator>
 OutputIterator inclusive_scan(InputIterator first, InputIterator last,
                               OutputIterator result) try {
-  std::size_t temp_storage_bytes;
   int const n = int(last - first);
-  auto err = cub::DeviceScan::InclusiveSum( //FIXME
-      nullptr, temp_storage_bytes, first, result, (last - first));
-  OMEGA_H_CHECK(err == 0);
-  void* d_temp_storage = maybe_pooled_device_malloc(temp_storage_bytes);
-  err = cub::DeviceScan::InclusiveSum( //FIXME
-      d_temp_storage, temp_storage_bytes, first, result, n);
-  OMEGA_H_CHECK(err == 0);
-  maybe_pooled_device_free(d_temp_storage, temp_storage_bytes);
+  std::inclusive_scan(oneapi::dpl::execution::par_unseq, first, last, result); //TODO: use memory pool
   return result + n;
-  // return thrust::inclusive_scan(thrust::device, first, last, result);
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
@@ -116,13 +109,10 @@ OutputIterator transform_inclusive_scan(InputIterator first, InputIterator last,
   Omega_h::entering_parallel = true;
   auto const transform_parallel = std::move(transform);
   Omega_h::entering_parallel = false;
-  /*
-  DPCT1007:1: Migration of this CUDA API is not supported by the Intel(R) DPC++
-  Compatibility Tool.
-  */
-  return thrust::transform_inclusive_scan(thrust::device, first, last, result, //FIXME
-                                          native_op(transform_parallel),
-                                          native_op(op));
+  return std::transform_inclusive_scan(oneapi::dpl::execution::par_unseq,
+                                          first, last, result,
+                                          native_op(op),
+                                          native_op(transform_parallel));
 }
 
 #elif defined(OMEGA_H_USE_OPENMP)

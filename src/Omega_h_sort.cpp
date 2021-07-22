@@ -27,13 +27,6 @@ inline __host__ __device__ void va_printf(const char*, Args...) {
 #endif
 
 #elif defined(OMEGA_H_USE_SYCL)
-inline void va_printf(const char*, Args...) {
-  /*
-  DPCT1040:7: Use sycl::stream instead of printf, if your code is used on the
-  device.
-  */
-  printf("\n"); //FIXME
-}
 
 #elif defined(OMEGA_H_USE_OPENMP)
 
@@ -60,11 +53,7 @@ static void parallel_sort(T* b, T* e, Comp c) {
 #elif defined(OMEGA_H_USE_SYCL)
   auto bptr = dpct::device_pointer<T>(b);
   auto eptr = dpct::device_pointer<T>(e);
-  /*
-  DPCT1007:8: Migration of this CUDA API is not supported by the Intel(R) DPC++
-  Compatibility Tool.
-  */
-  thrust::stable_sort(bptr, eptr, c); //FIXME
+  std::stable_sort(oneapi::dpl::execution::par_unseq,bptr, eptr, c);
 #elif defined(OMEGA_H_USE_OPENMP)
   pss::parallel_stable_sort(b, e, c);
 #else
