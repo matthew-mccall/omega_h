@@ -38,8 +38,8 @@ void for_each(InputIterator first, InputIterator last, UnaryFunction&& f) {
 #if defined(OMEGA_H_USE_CUDA)
   thrust::for_each(thrust::device, first, last, f2);
 #elif defined(OMEGA_H_USE_SYCL)
-  std::for_each(
-      std::execution::par_unseq, //FIXME Not sure that this is correct, it compiles... found here https://www.hpc.kaust.edu.sa/sites/default/files/files/public/oneAPI/Intel%28R%29%20oneDPL%20overview.pdf
+  oneapi::dpl::for_each(
+      oneapi::dpl::execution::par_unseq,
       first, last, f2);
 #elif defined(OMEGA_H_USE_OPENMP)
   LO const n = last - first;
