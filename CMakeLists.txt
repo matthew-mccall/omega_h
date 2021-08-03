@@ -35,6 +35,7 @@ if(Omega_h_USE_SYCL)
   find_package(SYCL REQUIRED)
   #see https://stackoverflow.com/questions/67923287
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -Wno-deprecated-declarations")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -tbb")
 endif()
 
 set(Omega_h_USE_ZLIB_DEFAULT ON)
