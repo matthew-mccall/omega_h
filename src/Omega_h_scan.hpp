@@ -93,7 +93,7 @@ template <typename InputIterator, typename OutputIterator>
 OutputIterator inclusive_scan(InputIterator first, InputIterator last,
                               OutputIterator result) try {
   int const n = int(last - first);
-  std::inclusive_scan(oneapi::dpl::execution::par_unseq, first, last, result); //TODO: use memory pool
+  oneapi::dpl::inclusive_scan(oneapi::dpl::execution::par_unseq, first, last, result); //TODO: use memory pool
   return result + n;
 }
 catch (sycl::exception const &exc) {
@@ -109,7 +109,7 @@ OutputIterator transform_inclusive_scan(InputIterator first, InputIterator last,
   Omega_h::entering_parallel = true;
   auto const transform_parallel = std::move(transform);
   Omega_h::entering_parallel = false;
-  return std::transform_inclusive_scan(oneapi::dpl::execution::par_unseq,
+  return oneapi::dpl::transform_inclusive_scan(oneapi::dpl::execution::par_unseq,
                                           first, last, result,
                                           native_op(op),
                                           native_op(transform_parallel));
