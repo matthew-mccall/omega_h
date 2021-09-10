@@ -270,6 +270,7 @@ HostWrite<T>::HostWrite(Write<T> write_in)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(write_.size())]);
+  //compiles if the following two lines are commented out
   auto policyD = oneapi::dpl::execution::make_device_policy<T>();
   std::copy(policyD, write_.data(), write_.data()+write_.size(), mirror_.get());
 #endif
