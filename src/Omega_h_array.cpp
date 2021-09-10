@@ -96,7 +96,8 @@ void Write<T>::set(LO i, T value) const {
 #if defined(OMEGA_H_USE_CUDA)
   cudaMemcpy(data() + i, &value, sizeof(T), cudaMemcpyHostToDevice);
 #elif defined(OMEGA_H_USE_SYCL)
-  std::copy(dpl::execution::dpcpp_default, &value, &value+1, data()+i);
+  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
+  std::copy(policyD, &value, &value+1, data()+i);
 #else
   operator[](i) = value;
 #endif
@@ -111,7 +112,8 @@ T Write<T>::get(LO i) const {
   return value;
 #elif defined(OMEGA_H_USE_SYCL)
   T value;
-  std::copy(dpl::execution::dpcpp_default, data()+i, data()+i+1, &value);
+  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
+  std::copy(policyD, data()+i, data()+i+1, &value);
   return value;
 #else
   return operator[](i);
@@ -268,7 +270,8 @@ HostWrite<T>::HostWrite(Write<T> write_in)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(write_.size())]);
-  std::copy(dpl::execution::dpcpp_default, write_.data(), write_.data()+write_.size(), mirror_.get());
+  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
+  std::copy(policyD, write_.data(), write_.data()+write_.size(), mirror_.get());
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)
@@ -301,7 +304,8 @@ Write<T> HostWrite<T>::write() const
       std::size_t(size()) * sizeof(T), cudaMemcpyHostToDevice);
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
-  std::copy(dpl::execution::dpcpp_default, mirror_.get(), mirror_.get()+size(), write_.data());
+  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
+  std::copy(policyD, mirror_.get(), mirror_.get()+size(), write_.data());
 #endif
   return write_;
 }
@@ -370,7 +374,8 @@ HostRead<T>::HostRead(Read<T> read)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(read_.size())]);
-  std::copy(dpl::execution::dpcpp_default, read_.data(), read_.data()+size(), mirror_.get());
+  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
+  std::copy(policyD, read_.data(), read_.data()+size(), mirror_.get());
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)
