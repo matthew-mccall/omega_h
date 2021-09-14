@@ -1,11 +1,11 @@
-#if defined(OMEGA_H_USE_SYCL)
-#endif
 #include "Omega_h_array.hpp"
 
 #include <cstring>
 #include <sstream>
 
 #include "Omega_h_for.hpp"
+#if defined(OMEGA_H_USE_SYCL)
+#endif
 
 namespace Omega_h {
 
@@ -97,7 +97,7 @@ void Write<T>::set(LO i, T value) const {
   cudaMemcpy(data() + i, &value, sizeof(T), cudaMemcpyHostToDevice);
 #elif defined(OMEGA_H_USE_SYCL)
   auto policyD = oneapi::dpl::execution::make_device_policy<T>();
-  std::copy(policyD, &value, &value+1, data()+i);
+  oneapi::dpl::copy(policyD, &value, &value+1, data()+i);
 #else
   operator[](i) = value;
 #endif
@@ -112,8 +112,8 @@ T Write<T>::get(LO i) const {
   return value;
 #elif defined(OMEGA_H_USE_SYCL)
   T value;
-  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
-  std::copy(policyD, data()+i, data()+i+1, &value);
+  auto policyD = oneapi::dpl::execution::make_device_policy< T >();
+  oneapi::dpl::copy(policyD, data()+i, data()+i+1, &value);
   return value;
 #else
   return operator[](i);
@@ -250,6 +250,41 @@ HostWrite<T>::HostWrite(
     LO size_in, T offset, T stride, std::string const& name_in)
     : HostWrite<T>(Write<T>(size_in, offset, stride, name_in)) {}
 
+
+#define OHPOLICY(T) \
+template <class T> \
+struct OhPolicy_ ## T; \
+template <> \
+struct OhPolicy_ ## T <I8>{ \
+  struct T ## _I8; \
+  using name = T ## _I8; \
+}; \
+\
+template <> \
+struct OhPolicy_ ## T <I32>{ \
+  struct T ## _I32; \
+  using name = T ## _I32; \
+}; \
+\
+template <> \
+struct OhPolicy_ ## T <I64>{ \
+  struct T ## _I64; \
+  using name = T ## _I64; \
+}; \
+\
+template <> \
+struct OhPolicy_ ## T <Real>{ \
+  struct T ## _Real; \
+  using name = T ## _Real; \
+}; \
+
+
+OHPOLICY(HostRead_Copy)
+OHPOLICY(HostWrite_write)
+OHPOLICY(HostWrite_Copy)
+#undef OHPOLICY
+
+
 template <typename T>
 HostWrite<T>::HostWrite(Write<T> write_in)
 #if defined(OMEGA_H_USE_SYCL)
@@ -271,8 +306,9 @@ HostWrite<T>::HostWrite(Write<T> write_in)
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(write_.size())]);
   //compiles if the following two lines are commented out
-  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
-  std::copy(policyD, write_.data(), write_.data()+write_.size(), mirror_.get());
+  using kernelName = typename OhPolicy_HostWrite_Copy<T>::name;
+  auto policyD = oneapi::dpl::execution::make_device_policy< kernelName >();
+  oneapi::dpl::copy(policyD, write_.data(), write_.data()+write_.size(), mirror_.get());
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)
@@ -305,8 +341,9 @@ Write<T> HostWrite<T>::write() const
       std::size_t(size()) * sizeof(T), cudaMemcpyHostToDevice);
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
-  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
-  std::copy(policyD, mirror_.get(), mirror_.get()+size(), write_.data());
+  using kernelName = typename OhPolicy_HostWrite_write<T>::name;
+  auto policyD = oneapi::dpl::execution::make_device_policy<kernelName>();
+  oneapi::dpl::copy(policyD, mirror_.get(), mirror_.get()+size(), write_.data());
 #endif
   return write_;
 }
@@ -375,8 +412,9 @@ HostRead<T>::HostRead(Read<T> read)
   OMEGA_H_CHECK(err == cudaSuccess);
 #elif defined(OMEGA_H_USE_SYCL)
   mirror_.reset(new T[std::size_t(read_.size())]);
-  auto policyD = oneapi::dpl::execution::make_device_policy<T>();
-  std::copy(policyD, read_.data(), read_.data()+size(), mirror_.get());
+  using kernelName = typename OhPolicy_HostRead_Copy<T>::name;
+  auto policyD = oneapi::dpl::execution::make_device_policy< kernelName >();
+  oneapi::dpl::copy(policyD, read_.data(), read_.data()+size(), mirror_.get());
 #endif
 }
 #if defined(OMEGA_H_USE_SYCL)
