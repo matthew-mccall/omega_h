@@ -38,6 +38,9 @@ class Write {
 #endif
   {
   }
+//#if defined(OMEGA_H_USE_SYCL)
+//  Write(Write const&) = default;
+//#endif
 #ifdef OMEGA_H_USE_KOKKOS
   Write(Kokkos::View<T*> view_in);
 #endif
@@ -160,6 +163,21 @@ class LOs : public Read<LO> {
   LOs(LO size_in, LO offset, LO stride, std::string const& name = "");
   LOs(std::initializer_list<LO> l, std::string const& name = "");
 };
+
+
+#define checkType(T,name) \
+  static_assert(std::is_trivially_move_constructible<T>::value, name " is not trivially move constructible"); \
+  static_assert(std::is_trivially_copy_constructible<T>::value, name " is not trivially copy constructible"); \
+  static_assert(std::is_trivially_destructible<T>::value, name " is not trivially destructible"); \
+  static_assert(std::is_trivially_move_assignable<T>::value, name " is not trivially move assignable"); \
+  static_assert(std::is_trivially_copy_assignable<T>::value, name " is not trivially copy constructible"); \
+  static_assert(std::is_trivially_copyable<T>::value, name " is not trivially_copyable"); \
+  static_assert(sycl::is_device_copyable<T>::value, name " is not device_copyable"); \
+
+checkType(Write<LO>, "Write<LO>");
+checkType(Read<LO>, "Read<LO>");
+checkType(LOs, "LOs");
+#undef checkType
 
 class GOs : public Read<GO> {
  public:
