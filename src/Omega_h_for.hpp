@@ -38,9 +38,12 @@ void for_each(InputIterator first, InputIterator last, UnaryFunction&& f) {
 #if defined(OMEGA_H_USE_CUDA)
   thrust::for_each(thrust::device, first, last, f2);
 #elif defined(OMEGA_H_USE_SYCL)
-  oneapi::dpl::for_each(
-      oneapi::dpl::execution::par_unseq,
-      first, last, f2);
+  LO const n = last - first;
+  sycl::queue q; //use default device //is creating this every time expensive?
+  q.submit([&](sycl::handler& h) {
+    h.parallel_for<class foo>( sycl::range<1>{n}, f2);
+  });
+  q.wait(); //blocking
 #elif defined(OMEGA_H_USE_OPENMP)
   LO const n = last - first;
 #pragma omp parallel for
@@ -56,8 +59,13 @@ void for_each(InputIterator first, InputIterator last, UnaryFunction&& f) {
 
 template <typename UnaryFunction>
 void parallel_for(LO n, UnaryFunction&& f) {
+#if defined(OMEGA_H_USE_SYCL)
+  auto first = IntIterator(0);
+  auto last = IntIterator(n);
+#else
   auto const first = IntIterator(0);
   auto const last = IntIterator(n);
+#endif
   ::Omega_h::for_each(first, last, f);
 }
 
