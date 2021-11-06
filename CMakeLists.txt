@@ -21,6 +21,7 @@ bob_option(Omega_h_CHECK_BOUNDS "Check array bounds (makes code slow too)" OFF)
 bob_option(Omega_h_THROW "Errors throw exceptions instead of abort" ${USE_XSDK_DEFAULTS})
 bob_input(Omega_h_DATA "" PATH "Path to omega_h-data test files")
 bob_option(Omega_h_USE_EGADS "Use EGADS from ESP for geometry" OFF)
+bob_option(Omega_h_USE_EGADSlite "Use EGADSlite from ESP for geometry" OFF)
 bob_input(EGADS_PREFIX "" PATH "EGADS (or ESP) installation directory")
 bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
@@ -117,6 +118,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_ZLIB
     Omega_h_USE_libMeshb
     Omega_h_USE_EGADS
+    Omega_h_USE_EGADSlite
     Omega_h_USE_SEACASExodus
     Omega_h_USE_DOLFIN
     Omega_h_USE_dwarf
