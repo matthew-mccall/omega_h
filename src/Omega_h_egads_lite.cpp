@@ -234,6 +234,7 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
       OMEGA_H_CHECK(index < eg->counts[class_dim]);
       auto g = eg->entities[class_dim][index];
       auto index2 = EGlite_indexBodyTopo(eg->body, g);
+      std::cout << "index, index2 " << index << index2 << "\n";
       OMEGA_H_CHECK(index2 == index + 1);
       auto b = get_closest_point(g, a);
       d = b - a;

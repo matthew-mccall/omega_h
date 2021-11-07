@@ -62,11 +62,14 @@ struct AdaptOpts {
   Real length_histogram_max;
   Int nlength_histogram_bins;
   Int nquality_histogram_bins;
-#if defined (OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
-  Egads* egads_model;
   bool should_smooth_snap;
   Real snap_smooth_tolerance;
   bool allow_snap_failure;
+#ifdef OMEGA_H_USE_EGADS
+  Egads* egads_model;
+#endif
+#ifdef OMEGA_H_USE_EGADSLITE
+  Egads* egads_lite_model;
 #endif
   bool should_refine;
   bool should_coarsen;
