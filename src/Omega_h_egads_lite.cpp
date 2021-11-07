@@ -188,7 +188,7 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
       auto e = host_a2ab[i + 1];
       Int class_dim = host_class_dims[i];
       LO class_id = host_class_ids[i];
-      egads_classify(
+      egads_lite_classify(
           eg, e - b, host_face_ids.data() + b, &class_dim, &class_id);
       host_class_dims[i] = I8(class_dim);
       host_class_ids[i] = class_id;

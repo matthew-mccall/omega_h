@@ -1,5 +1,5 @@
 #include <Omega_h_adapt.hpp>
-#include "Omega_h_egads.hpp"
+#include "Omega_h_egads_lite.hpp"
 #include <Omega_h_array_ops.hpp>
 #include <Omega_h_cmdline.hpp>
 #include <Omega_h_file.hpp>
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
   auto const desired_nelems = cmdline.get<double>("desired-num-elements");
   auto const outpath = cmdline.get<std::string>("output.osh");
   auto const egads_path = cmdline.get<std::string>("egads-model");
-  auto eg = Omega_h::egads_load(egads_path);
+  auto eg = Omega_h::egads_lite_load(egads_path);
   auto const desired_nelems_per_rank = desired_nelems/world_size;
   Omega_h::Mesh mesh(&lib);
   for (int shift = 0; (1 << shift) <= world_size; ++shift) {
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
         if (world_rank == 0) std::cout << "reading mesh...\n";
         mesh = Omega_h::binary::read(inpath, group, true);
         mesh.set_curved(-1);
-        Omega_h::egads_reclassify(&mesh, eg);
+        Omega_h::egads_lite_reclassify(&mesh, eg);
       } else {
         if (world_rank == 0) std::cout << "repartitioning...\n";
         mesh.set_comm(group);
@@ -96,6 +96,6 @@ int main(int argc, char** argv) {
     }
     world->barrier();
   }
-  Omega_h::egads_free(eg);
+  Omega_h::egads_lite_free(eg);
   return 0;
 }

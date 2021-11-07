@@ -18,6 +18,9 @@
 #ifdef OMEGA_H_USE_EGADS
 #include "Omega_h_egads.hpp"
 #endif
+#ifdef OMEGA_H_USE_EGADSlite
+#include "Omega_h_egads_lite.hpp"
+#endif
 
 namespace Omega_h {
 
@@ -72,6 +75,12 @@ AdaptOpts::AdaptOpts(Int dim) {
   nlength_histogram_bins = 10;
   nquality_histogram_bins = 10;
 #ifdef OMEGA_H_USE_EGADS
+  egads_model = nullptr;
+  should_smooth_snap = true;
+  snap_smooth_tolerance = 1e-2;
+  allow_snap_failure = false;
+#endif
+#ifdef OMEGA_H_USE_EGADSlite
   egads_model = nullptr;
   should_smooth_snap = true;
   snap_smooth_tolerance = 1e-2;
@@ -238,6 +247,38 @@ static void snap_and_satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
     }
   } else
 #endif
+#ifdef OMEGA_H_USE_EGADSlite
+  if (opts.egads_model) {
+    ScopedTimer snap_timer("snap");
+
+    mesh->change_all_rcFieldsTorc();
+    mesh->set_parting(OMEGA_H_GHOSTED);
+    mesh->change_all_rcFieldsToMesh();
+
+    auto warp = egads_lite_get_snap_warp(
+        mesh, opts.egads_model, opts.verbosity >= EACH_REBUILD);
+    if (opts.should_smooth_snap) {
+      if (opts.verbosity >= EACH_REBUILD) {
+        std::cout << "Solving Laplacian of warp field...\n";
+      }
+      auto t0 = now();
+      warp =
+          solve_laplacian(mesh, warp, mesh->dim(), opts.snap_smooth_tolerance);
+      auto t1 = now();
+      if (opts.verbosity >= EACH_REBUILD) {
+        std::cout << "Solving Laplacian of warp field took " << (t1 - t0)
+                  << " seconds\n";
+      }
+    }
+    mesh->add_tag(VERT, "warp", mesh->dim(), warp);
+    while (warp_to_limit(mesh, opts, opts.allow_snap_failure)) {
+      if (!satisfy_quality(mesh, opts)) {
+        mesh->remove_tag(VERT, "warp");
+        break;
+      }
+    }
+  } else
+#endif
     satisfy_quality(mesh, opts);
 }
 
@@ -253,6 +294,9 @@ static void post_adapt(
   }
   if (opts.verbosity > SILENT && !mesh->comm()->rank()) {
 #ifdef OMEGA_H_USE_EGADS
+    if (opts.egads_model) std::cout << "snapping while ";
+#endif
+#ifdef OMEGA_H_USE_EGADSlite
     if (opts.egads_model) std::cout << "snapping while ";
 #endif
     std::cout << "addressing element qualities took " << (t3 - t2);
