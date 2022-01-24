@@ -10,8 +10,75 @@
 #include <Omega_h_egads.hpp>
 #endif
 
+
+// Macro for checking errors in HIP API calls
+#define hipErrorCheck(call)                                                                 \
+do{                                                                                         \
+    hipError_t hipErr = call;                                                               \
+    if(hipSuccess != hipErr){                                                               \
+        printf("HIP Error - %s:%d: '%s'\n", __FILE__, __LINE__, hipGetErrorString(hipErr)); \
+        exit(0);                                                                            \
+    }                                                                                       \
+}while(0)
+
+
+void printBinding(int rank) {
+  // If ROCR_VISIBLE_DEVICES is set, capture visible GPUs
+  const char* gpu_id_list; 
+  const char* rocr_visible_devices = getenv("ROCR_VISIBLE_DEVICES");
+  if(rocr_visible_devices == NULL){
+    gpu_id_list = "N/A";
+  }
+  else{
+    gpu_id_list = rocr_visible_devices;
+  }
+
+  std::string name = "crusher";
+
+  // Find how many GPUs HIP runtime says are available
+  int num_devices = 0;
+  hipErrorCheck( hipGetDeviceCount(&num_devices) );
+
+  int hwthread;
+  int thread_id = 0;
+
+
+  char busid[64];
+
+  std::string busid_list = "";
+  std::string rt_gpu_id_list = "";
+
+  fprintf(stderr, "num_devices %d\n", num_devices);
+  assert(num_devices == 1);
+  // Loop over the GPUs available to each MPI rank
+  for(int i=0; i<num_devices; i++){
+
+    // Get the PCIBusId for each GPU and use it to query for UUID
+    hipErrorCheck( hipDeviceGetPCIBusId(busid, 64, i) );
+
+    // Concatenate per-MPIrank GPU info into strings for print
+    if(i > 0) rt_gpu_id_list.append(",");
+    rt_gpu_id_list.append(std::to_string(i));
+
+    std::string temp_busid(busid);
+
+    if(i > 0) busid_list.append(",");
+    busid_list.append(temp_busid.substr(5,2));
+  }
+
+  thread_id = 0;
+  hwthread = sched_getcpu();
+
+  printf("MPI %03d - OMP %03d - HWT %03d - Node %s - RT_GPU_ID %s - GPU_ID %s - Bus_ID %s\n",
+      rank, thread_id, hwthread, name.c_str(), rt_gpu_id_list.c_str(), gpu_id_list, busid_list.c_str());
+}
+
+
+
+
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
+  printBinding(lib.world()->rank());
   Omega_h::CmdLine cmdline;
   cmdline.add_arg<std::string>("mesh_in.meshb");
   cmdline.add_arg<std::string>("mach_in.solb");
