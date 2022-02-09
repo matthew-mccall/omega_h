@@ -23,17 +23,26 @@ int main(int argc, char** argv) {
   auto const outpath = cmdline.get<std::string>("output.osh");
   auto const outvtkpath = cmdline.get<std::string>("output.vtk");
   Omega_h::Mesh mesh(&lib);
-  Omega_h::binary::read(argv[1], lib.world(), &mesh);
+  Omega_h::binary::read(inpath, lib.world(), &mesh);
+
+  //enable ghosting for adaptation
+  mesh.set_parting(OMEGA_H_GHOSTED);
+
+  //apapt options
   Omega_h::AdaptOpts opts(&mesh);
+  opts.verbosity = Omega_h::EXTRA_STATS;
+
+  //used to define 'target_metric' needed by approach_metric
   auto metrics = mesh.get_array<double>(0, "size");
-  auto const metric_ncomps =
-    Omega_h::divide_no_remainder(metrics.size(), mesh.nverts());
-  mesh.add_tag(0, "metric", metric_ncomps, metrics);
-  if (world_rank == 0) std::cout << "adapting to metric\n";
-  Omega_h::adapt(&mesh, opts);
+
+  //adapt - this creates the needed 'metric' and 'target_metric' tags
+  //fails with negative minimum quality...
+  Omega_h::grade_fix_adapt(&mesh,opts,metrics,/*verbose*/true);
+  
+  Omega_h::vtk::write_parallel(outvtkpath, &mesh, mesh.dim());
   auto nelems = mesh.nglobal_ents(mesh.dim());
+
   if (world_rank == 0)
     std::cout << "mesh now has " << nelems << " total elements\n";
-  Omega_h::vtk::write_parallel(outvtkpath, &mesh, mesh.dim());
   return 0;
 }
