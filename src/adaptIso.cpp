@@ -25,6 +25,9 @@ int main(int argc, char** argv) {
   Omega_h::Mesh mesh(&lib);
   Omega_h::binary::read(inpath, lib.world(), &mesh);
 
+  mesh.ask_sizes();
+  Omega_h::vtk::write_parallel("size.vtk", &mesh, mesh.dim());
+
   //enable ghosting for adaptation
   mesh.set_parting(OMEGA_H_GHOSTED);
 
@@ -34,9 +37,9 @@ int main(int argc, char** argv) {
 
   //used to define 'target_metric' needed by approach_metric
   auto metrics = mesh.get_array<double>(0, "size");
+  mesh.remove_tag(0,"size"); //"size" appears to be a reserved keyword  ... at least for elements
 
   //adapt - this creates the needed 'metric' and 'target_metric' tags
-  //fails with negative minimum quality...
   Omega_h::grade_fix_adapt(&mesh,opts,metrics,/*verbose*/true);
   
   Omega_h::vtk::write_parallel(outvtkpath, &mesh, mesh.dim());
