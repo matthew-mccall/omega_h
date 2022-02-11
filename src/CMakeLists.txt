@@ -247,7 +247,7 @@ endmacro(osh_add_util)
 
 osh_add_util(msh2osh)
 osh_add_util(osh2vtk)
-osh_add_util(adaptIso)
+osh_add_util(adaptPumiRfIso)
 osh_add_util(oshdiff)
 osh_add_util(vtkdiff)
 osh_add_util(osh_box)
