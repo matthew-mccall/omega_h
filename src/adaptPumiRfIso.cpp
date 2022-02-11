@@ -16,7 +16,6 @@ int main(int argc, char** argv) {
   if (!cmdline.parse_final(world, &argc, argv)) {
     return -1;
   }
-  Omega_h::ScopedTimer scoped_timer("main");
   auto const world_size = world->size();
   auto const world_rank = world->rank();
   auto const inpath = cmdline.get<std::string>("input.osh");
@@ -51,7 +50,10 @@ int main(int argc, char** argv) {
   mesh.add_tag(0,"cws_size",1,metricSquaredRecip);
 
   //adapt - this creates the needed 'metric' and 'target_metric' tags
-  Omega_h::grade_fix_adapt(&mesh,opts,metricSquaredRecip,/*verbose*/true);
+  {
+    Omega_h::ScopedTimer scoped_timer("grade_fix_adapt"); //run with '--osh-time' to see this
+    Omega_h::grade_fix_adapt(&mesh,opts,metricSquaredRecip,/*verbose*/true);
+  }
 
   Omega_h::vtk::write_parallel(outvtkpath, &mesh, mesh.dim());
 
