@@ -171,6 +171,7 @@ void grade_fix_adapt(
     if (verbose) std::cout << ", which is good\n";
   }
   if (verbose) std::cout << "Adapting...\n";
+  Omega_h::vtk::write_parallel("preAdapt.vtk", mesh, mesh->dim());
   while (Omega_h::approach_metric(mesh, opts)) {
     Omega_h::adapt(mesh, opts);
   }
