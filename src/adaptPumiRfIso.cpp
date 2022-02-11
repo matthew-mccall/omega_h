@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
   //adapt - this creates the needed 'metric' and 'target_metric' tags
   {
-    Omega_h::ScopedTimer scoped_timer("grade_fix_adapt"); //run with '--osh-time' to see this
+    Omega_h::ScopedTimer scoped_timer("main_grade_fix_adapt"); //run with '--osh-time' to see this
     Omega_h::grade_fix_adapt(&mesh,opts,metricSquaredRecip,/*verbose*/true);
   }
 
