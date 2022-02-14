@@ -16,7 +16,7 @@
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
 #endif
 
-#include <egads_lite.h>
+#include <egads.h>
 
 enum EgadsObjectClass {
   EGADS_CONTXT = CONTXT,
@@ -83,20 +83,20 @@ struct Egads {
 
 Egads* egads_lite_load(std::string const& filename) {
   auto eg = new Egads;
-  CALL(EGlite_open(&eg->context));
-  CALL(EGlite_loadModel(eg->context, 0, filename.c_str(), &eg->model));
+  CALL(EG_open(&eg->context));
+  CALL(EG_loadModel(eg->context, 0, filename.c_str(), &eg->model));
   ego model_geom;
   int model_oclass;
   int model_mtype;
   int nbodies;
   ego* bodies;
   int* body_senses;
-  CALL(EGlite_getTopology(eg->model, &model_geom, &model_oclass, &model_mtype,
+  CALL(EG_getTopology(eg->model, &model_geom, &model_oclass, &model_mtype,
       nullptr, &nbodies, &bodies, &body_senses));
   OMEGA_H_CHECK(nbodies == 1);
   eg->body = bodies[0];
   for (int i = 0; i < 3; ++i) {
-    CALL(EGlite_getBodyTopos(
+    CALL(EG_getBodyTopos(
         eg->body, nullptr, dims2oclass[i], &eg->counts[i], &eg->entities[i]));
   }
   // preprocess edge and vertex adjacency to faces
@@ -106,11 +106,11 @@ Egads* egads_lite_load(std::string const& filename) {
       auto face = eg->entities[2][j];
       int nadj_ents;
       ego* adj_ents;
-      CALL(EGlite_getBodyTopos(
+      CALL(EG_getBodyTopos(
           eg->body, face, dims2oclass[i], &nadj_ents, &adj_ents));
       for (int k = 0; k < nadj_ents; ++k) {
         auto adj_ent = adj_ents[k];
-        auto idx = EGlite_indexBodyTopo(eg->body, adj_ent) - 1;
+        auto idx = EG_indexBodyTopo(eg->body, adj_ent) - 1;
         idxs2adj_faces[idx].insert(face);
       }
     }
@@ -135,7 +135,7 @@ static int get_dim(ego e) {
   int nchild;
   ego* children;
   int* senses;
-  CALL(EGlite_getTopology(
+  CALL(EG_getTopology(
       e, &ref, &oclass, &mtype, nullptr, &nchild, &children, &senses));
   for (int i = 0; i <= 3; ++i)
     if (dims2oclass[i] == oclass) return i;
@@ -153,16 +153,16 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
   if (it != eg->classifier.end()) {
     auto ent = it->second;
     *class_dim = get_dim(ent);
-    *class_id = EGlite_indexBodyTopo(eg->body, ent);
+    *class_id = EG_indexBodyTopo(eg->body, ent);
   }
 }
 
 void egads_lite_free(Egads* eg) {
   for (int i = 0; i < 3; ++i) {
-    EGlite_free(eg->entities[i]);
+    EG_free(eg->entities[i]);
   }
-  CALL(EGlite_deleteObject(eg->model));
-  CALL(EGlite_close(eg->context));
+  CALL(EG_deleteObject(eg->model));
+  CALL(EG_close(eg->context));
   delete eg;
 }
 
@@ -202,7 +202,7 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
 OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
   Vector<2> ignored;
   Vector<3> out = in;
-  CALL(EGlite_invEvaluate(g, in.data(), ignored.data(), out.data()));
+  CALL(EG_invEvaluate(g, in.data(), ignored.data(), out.data()));
   return out;
 }
 
@@ -225,7 +225,7 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
       OMEGA_H_CHECK(index >= 0);
       OMEGA_H_CHECK(index < eg->counts[class_dim]);
       auto g = eg->entities[class_dim][index];
-      auto index2 = EGlite_indexBodyTopo(eg->body, g);
+      auto index2 = EG_indexBodyTopo(eg->body, g);
       OMEGA_H_CHECK(index2 == index + 1);
       auto b = get_closest_point(g, a);
       d = b - a;
