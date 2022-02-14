@@ -3,11 +3,11 @@
 
 #include <Omega_h_array.hpp>
 #include <string>
-#include "Omega_h_egads.hpp"
 
 namespace Omega_h {
 
 class Mesh;
+struct Egads;
 
 Egads* egads_lite_load(std::string const& filename);
 void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
