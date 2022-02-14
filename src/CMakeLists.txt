@@ -157,15 +157,15 @@ if(Omega_h_USE_EGADSlite)
   if(NOT EGADSlite_PREFIX)
     message(FATAL_ERROR "Omega_h_USE_EGADSlite=${Omega_h_USE_EGADSlite} but EGADSlite_PREFIX not set!")
   endif()
-  find_path(EGADSlite_INCLUDE_DIR NAMES egads_lite.h
+  find_path(EGADSlite_INCLUDE_DIR NAMES egads.h
       PATHS
       "${EGADSlite_PREFIX}/EGADSlite/include"
       "${EGADSlite_PREFIX}/include"
       NO_DEFAULT_PATH)
   if(NOT EGADSlite_INCLUDE_DIR)
-    message(FATAL_ERROR "could not find path to \"egads_lite.h\"")
+    message(FATAL_ERROR "could not find path to \"egads.h\"")
   endif()
-  find_library(EGADSlite_LIBRARY NAMES egadslite
+  find_library(EGADSlite_LIBRARY NAMES egadsliteCuda
       PATHS
       "${EGADSlite_PREFIX}/EGADSlite/lib"
       "${EGADSlite_PREFIX}/lib"
