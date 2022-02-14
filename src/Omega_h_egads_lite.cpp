@@ -3,6 +3,7 @@
 #include "Omega_h_map.hpp"
 #include "Omega_h_mesh.hpp"
 #include "Omega_h_timer.hpp"
+#include "Omega_h_for.hpp"
 
 #include <Omega_h_fail.hpp>
 #include <iostream>
@@ -61,11 +62,9 @@ enum EgadsObjectClass {
 
 namespace Omega_h {
 
-static void call_egads(
+OMEGA_H_INLINE void call_egads(
     int result, char const* code, char const* file, int line) {
   if (EGADS_SUCCESS == result) return;
-  Omega_h_fail(
-      "EGADS call %s returned %d at %s +%d\n", code, result, file, line);
 }
 
 #define CALL(f) call_egads((f), #f, __FILE__, __LINE__)
@@ -200,10 +199,10 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
   }
 }
 
-static Vector<3> get_closest_point(ego g, Vector<3> in) {
-  double ignored[2] = {};
+OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
+  Vector<2> ignored;
   Vector<3> out = in;
-  CALL(EGlite_invEvaluate(g, in.data(), ignored, out.data()));
+  CALL(EGlite_invEvaluate(g, in.data(), ignored.data(), out.data()));
   return out;
 }
 
@@ -214,35 +213,26 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
   auto class_dims = mesh->get_array<I8>(VERT, "class_dim");
   auto class_ids = mesh->get_array<ClassId>(VERT, "class_id");
   auto coords = mesh->coords();
-  auto host_class_dims = HostRead<I8>(class_dims);
-  auto host_class_ids = HostRead<LO>(class_ids);
-  auto host_coords = HostRead<Real>(coords);
-  auto host_warp = HostWrite<Real>(mesh->nverts() * 3);
-  for (LO i = 0; i < mesh->nverts(); ++i) {
-    //auto a = get_vector<3>(coords, i);
-    Vector<3> a;                                                                    
-    for (Int j = 0; j < 3; ++j) a[j] = host_coords[i * 3 + j];
-    //auto a = get_vector<3>(host_coords, i);
-    //auto device_a = get_vector<3>(coords, i);
-    Int class_dim = host_class_dims[i];
+  auto warp = Write<Real>(mesh->nverts() * 3);
+  auto calc_warp = OMEGA_H_LAMBDA(LO i) {
+    auto a = get_vector<3>(coords, i);
+    Int class_dim = class_dims[i];
     OMEGA_H_CHECK(class_dim >= 0);
     OMEGA_H_CHECK(class_dim <= 3);
     auto d = vector_3(0, 0, 0);
     if (0 < class_dim && class_dim < 3) {
-      auto index = host_class_ids[i] - 1;
+      auto index = class_ids[i] - 1;
       OMEGA_H_CHECK(index >= 0);
       OMEGA_H_CHECK(index < eg->counts[class_dim]);
       auto g = eg->entities[class_dim][index];
       auto index2 = EGlite_indexBodyTopo(eg->body, g);
-      std::cout << "index, index2 " << index << index2 << "\n";
       OMEGA_H_CHECK(index2 == index + 1);
       auto b = get_closest_point(g, a);
       d = b - a;
     }
-    //set_vector(host_warp, i, d);
-    for (Int j = 0; j < 3; ++j) host_warp[i * 3 + j] = d[j];
-  }
-  auto warp = Reals(host_warp.write());
+    set_vector(warp, i, d);
+  };
+  parallel_for(mesh->nverts(), std::move(calc_warp), "calc_warp"); 
   auto t1 = now();
   if (verbose) {
     std::cout << "Querying closest points for surface vertices took "
