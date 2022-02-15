@@ -157,11 +157,13 @@ if(Omega_h_USE_EGADSlite)
   add_library(ohEgadslite Omega_h_egads_lite.cpp)
   set_source_files_properties(Omega_h_egads_lite.cpp PROPERTIES LANGUAGE CUDA)
   set_target_properties(ohEgadslite PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  set_target_properties(ohEgadslite PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
   target_link_libraries(ohEgadslite PUBLIC egadslite::egadslite)
   target_include_directories(ohEgadslite PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR})
   target_compile_options(ohEgadslite PRIVATE "--expt-extended-lambda")
+  install(TARGETS ohEgadslite EXPORT omega_h-target ARCHIVE) #HACK
 endif()
 
 if(Omega_h_USE_SEACASExodus)
