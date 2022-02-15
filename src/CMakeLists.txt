@@ -208,7 +208,7 @@ if(Omega_h_USE_EGADS)
 endif()
 
 if(Omega_h_USE_EGADSlite)
-  bob_link_dependency(omega_h PRIVATE ohEgadslite)
+  target_link_libraries(omega_h PUBLIC ohEgadslite)
 endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
