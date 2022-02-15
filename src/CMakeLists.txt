@@ -201,6 +201,7 @@ endif()
 
 if(Omega_h_USE_EGADSlite)
   target_link_libraries(omega_h PUBLIC egadslite::egadslite)
+  set_target_properties(omega_h PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
