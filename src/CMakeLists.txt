@@ -153,28 +153,7 @@ if(Omega_h_USE_EGADS)
 endif()
 
 if(Omega_h_USE_EGADSlite)
-  message(STATUS "Omega_h_USE_EGADSlite: ${Omega_h_USE_EGADSlite}")
-  if(NOT EGADSlite_PREFIX)
-    message(FATAL_ERROR "Omega_h_USE_EGADSlite=${Omega_h_USE_EGADSlite} but EGADSlite_PREFIX not set!")
-  endif()
-  find_path(EGADSlite_INCLUDE_DIR NAMES egads.h
-      PATHS
-      "${EGADSlite_PREFIX}/EGADSlite/include"
-      "${EGADSlite_PREFIX}/include"
-      NO_DEFAULT_PATH)
-  if(NOT EGADSlite_INCLUDE_DIR)
-    message(FATAL_ERROR "could not find path to \"egads.h\"")
-  endif()
-  find_library(EGADSlite_LIBRARY NAMES egadsliteCuda
-      PATHS
-      "${EGADSlite_PREFIX}/EGADSlite/lib"
-      "${EGADSlite_PREFIX}/lib"
-      NO_DEFAULT_PATH)
-  if(NOT EGADSlite_LIBRARY)
-    message(FATAL_ERROR "could not find EGADSlite_LIBRARY")
-  endif()
-  message(STATUS "EGADSlite_INCLUDE_DIR: ${EGADSlite_INCLUDE_DIR}")
-  message(STATUS "EGADSlite_LIBRARY: ${EGADSlite_LIBRARY}")
+  find_package(egadslite REQUIRED)
   set(Omega_h_SOURCES ${Omega_h_SOURCES} Omega_h_egads_lite.cpp)
 endif()
 
@@ -221,8 +200,7 @@ if(Omega_h_USE_EGADS)
 endif()
 
 if(Omega_h_USE_EGADSlite)
-  target_include_directories(omega_h PUBLIC "${EGADSlite_INCLUDE_DIR}")
-  target_link_libraries(omega_h PUBLIC "${EGADSlite_LIBRARY}")
+  target_link_libraries(omega_h PUBLIC egadslite::egadslite)
 endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
