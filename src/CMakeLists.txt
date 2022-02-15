@@ -154,7 +154,14 @@ endif()
 
 if(Omega_h_USE_EGADSlite)
   find_package(egadslite REQUIRED)
-  set(Omega_h_SOURCES ${Omega_h_SOURCES} Omega_h_egads_lite.cpp)
+  add_library(ohEgadslite Omega_h_egads_lite.cpp)
+  set_source_files_properties(Omega_h_egads_lite.cpp PROPERTIES LANGUAGE CUDA)
+  set_target_properties(ohEgadslite PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  target_link_libraries(ohEgadslite PUBLIC egadslite::egadslite)
+  target_include_directories(ohEgadslite PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR})
+  target_compile_options(ohEgadslite PRIVATE "--expt-extended-lambda")
 endif()
 
 if(Omega_h_USE_SEACASExodus)
@@ -188,6 +195,7 @@ if (Omega_h_USE_OpenMP)
   target_compile_options(omega_h PUBLIC -fopenmp)
 endif()
 
+
 bob_link_dependency(omega_h PUBLIC Kokkos)
 
 bob_link_dependency(omega_h PUBLIC libMeshb)
@@ -200,8 +208,7 @@ if(Omega_h_USE_EGADS)
 endif()
 
 if(Omega_h_USE_EGADSlite)
-  target_link_libraries(omega_h PUBLIC egadslite::egadslite)
-  set_target_properties(omega_h PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  bob_link_dependency(omega_h PRIVATE ohEgadslite)
 endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
