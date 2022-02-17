@@ -85,20 +85,57 @@ Egads* egads_lite_load(std::string const& filename) {
   auto eg = new Egads;
   CALL(EG_open(&eg->context));
   CALL(EG_loadModel(eg->context, 0, filename.c_str(), &eg->model));
-  ego model_geom;
-  int model_oclass;
-  int model_mtype;
   int nbodies;
   ego* bodies;
-  int* body_senses;
-  CALL(EG_getTopology(eg->model, &model_geom, &model_oclass, &model_mtype,
-      nullptr, &nbodies, &bodies, &body_senses));
-  OMEGA_H_CHECK(nbodies == 1);
-  eg->body = bodies[0];
-  for (int i = 0; i < 3; ++i) {
-    CALL(EG_getBodyTopos(
-        eg->body, nullptr, dims2oclass[i], &eg->counts[i], &eg->entities[i]));
-  }
+
+  for (int i = 0; i < 3; ++i)
+    printf("dims2oclass[%d] %d\n", i, dims2oclass[i]);
+  const auto egModel = eg->model;
+  Omega_h::LOs d2oc = {dims2oclass[0],
+                       dims2oclass[1],
+                       dims2oclass[2],
+                       dims2oclass[3]};
+  auto getTopo = OMEGA_H_LAMBDA(int i) {
+    printf("cuda eg_getTopo\n");
+    //-not used as output {
+    //-passing them through the capture-by-value lambda
+    // requires them to be const... which they are not
+    ego model_geom;
+    int model_oclass;
+    int model_mtype;
+    int* body_senses;
+    //}
+    int nbodies_local;
+    ego* bodies_local;
+    printf("eg_getTopo 0.1\n");
+    EG_getTopology(egModel,
+        &model_geom,
+        &model_oclass,
+        &model_mtype,
+        nullptr,
+        &nbodies_local,
+        &bodies_local,
+        &body_senses);
+    printf("nbodies_local %d\n", nbodies_local);
+    assert(nbodies_local == 1);
+    //eg->body = bodies_local[0]; //FIXME skip this for now
+    auto body = bodies_local[0]; //FIXME
+    for (int i = 0; i < 3; ++i) {
+      printf("d2oc[%d] %d\n", i, d2oc[i]);
+      int counts;
+      ego* ents;
+      EG_getBodyTopos(
+          body, //FIXME
+          nullptr,
+          d2oc[i],
+          &counts,
+          &ents);
+    }
+    printf("eg_getTopo 0.3\n");
+  };
+  //FIXME need to set eg->body and output counts and ents from eg_getBodyTopos
+  parallel_for(1, getTopo, "getEgadsTopo");
+  assert(cudaSuccess == cudaDeviceSynchronize());
   // preprocess edge and vertex adjacency to faces
   for (int i = 0; i < 2; ++i) {
     std::vector<std::set<ego>> idxs2adj_faces(eg->counts[i]);
