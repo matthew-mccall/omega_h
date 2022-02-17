@@ -165,19 +165,69 @@ Egads* egads_lite_load(std::string const& filename) {
 
   // preprocess edge and vertex adjacency to faces
   for (int i = 0; i < 2; ++i) {
+    printf("3.11\n");
+    Omega_h::Write<int> setSizes_d(eg->counts[i]);
+    auto egBody = eg->body;
+    auto egCounts = eg->counts[2];
+    auto egEnts = eg->entities[2];
+    //count the set sizes
+    auto countIndexBody = OMEGA_H_LAMBDA(int i) {
+      for (int j = 0; j < egCounts; ++j) {
+        auto face = egEnts[j];
+        int nadj_ents;
+        ego* adj_ents;
+        EG_getBodyTopos(egBody, face, d2oc[i], &nadj_ents, &adj_ents);
+        for (int k = 0; k < nadj_ents; ++k) {
+          auto adj_ent = adj_ents[k];
+          auto idx = EG_indexBodyTopo(egBody, adj_ent) - 1;
+          setSizes_d[idx]++;
+        }
+      }
+    };
+    parallel_for(1, countIndexBody, "getIndexBody");
+    assert(cudaSuccess == cudaDeviceSynchronize());
+    printf("3.12\n");
+
+    const auto setSizes = Omega_h::HostRead<int>(setSizes_d);
+    int totSize = 0;
+    for(int j=0; j<setSizes.size(); j++) {
+      totSize += setSizes[j];
+    }
+    auto idxs2adj_faces_d = OhWriteEgo(totSize);
+    printf("3.13\n");
+
+    Omega_h::Write<int> setCounts_d(eg->counts[i]);
+    printf("3.2\n");
+    //fill the sets
+    auto getIndexBody = OMEGA_H_LAMBDA(int i) {
+      for (int j = 0; j < egCounts; ++j) {
+        auto face = egEnts[j];
+        int nadj_ents;
+        ego* adj_ents;
+        EG_getBodyTopos(egBody, face, d2oc[i], &nadj_ents, &adj_ents);
+        for (int k = 0; k < nadj_ents; ++k) {
+          auto adj_ent = adj_ents[k];
+          auto idx = EG_indexBodyTopo(egBody, adj_ent) - 1;
+          auto ohIdx = setCounts_d[idx]++;
+          idxs2adj_faces_d[ohIdx] = egoToGo(face);
+        }
+      }
+    };
+    parallel_for(1, getIndexBody, "getIndexBody");
+    assert(cudaSuccess == cudaDeviceSynchronize());
+
+    printf("3.3\n");
     std::vector<std::set<ego>> idxs2adj_faces(eg->counts[i]);
-    for (int j = 0; j < eg->counts[2]; ++j) {
-      auto face = eg->entities[2][j];
-      int nadj_ents;
-      ego* adj_ents;
-      CALL(EG_getBodyTopos(
-          eg->body, face, dims2oclass[i], &nadj_ents, &adj_ents));
-      for (int k = 0; k < nadj_ents; ++k) {
-        auto adj_ent = adj_ents[k];
-        auto idx = EG_indexBodyTopo(eg->body, adj_ent) - 1;
-        idxs2adj_faces[idx].insert(face);
+    //copy array into vector of sets
+    const auto idxs2adj_faces_h = Omega_h::HostRead<Omega_h::GO>(idxs2adj_faces_d);
+    int idx = 0;
+    for(int j = 0; j < setSizes.size(); j++) {
+      for(int k = 0; k < setSizes[j]; k++) {
+        auto face = goToEgo(idxs2adj_faces_h[idx++]);
+        idxs2adj_faces[j].insert(face);
       }
     }
+
     for (int j = 0; j < eg->counts[i]; ++j) {
       auto adj_faces = idxs2adj_faces[j];
       // HACK!: we have a really insane CAD model with nonsensical topology.
