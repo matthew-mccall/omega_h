@@ -95,6 +95,10 @@ Egads* egads_lite_load(std::string const& filename) {
                        dims2oclass[1],
                        dims2oclass[2],
                        dims2oclass[3]};
+  Omega_h::Write<int> egCounts_d(3);
+  assert(sizeof(Omega_h::GO) == sizeof(ego)); //HACK
+  Omega_h::Write<Omega_h::GO> egEnts_d(3);
+  Omega_h::Write<Omega_h::GO> egBody_d(1);
   auto getTopo = OMEGA_H_LAMBDA(int i) {
     printf("cuda eg_getTopo\n");
     //-not used as output {
@@ -118,24 +122,42 @@ Egads* egads_lite_load(std::string const& filename) {
         &body_senses);
     printf("nbodies_local %d\n", nbodies_local);
     assert(nbodies_local == 1);
-    //eg->body = bodies_local[0]; //FIXME skip this for now
-    auto body = bodies_local[0]; //FIXME
+    egBody_d[0] = (Omega_h::GO) bodies_local[0];
+    printf("device body %p\n", bodies_local[0]);
     for (int i = 0; i < 3; ++i) {
       printf("d2oc[%d] %d\n", i, d2oc[i]);
       int counts;
       ego* ents;
       EG_getBodyTopos(
-          body, //FIXME
+          bodies_local[0],
           nullptr,
           d2oc[i],
           &counts,
           &ents);
+      egCounts_d[i] = counts;
+      egEnts_d[i] = (Omega_h::GO) ents;
+      printf("device %d count %d ents %p\n",
+          i, egCounts_d[i], egEnts_d[i]);
     }
     printf("eg_getTopo 0.3\n");
   };
-  //FIXME need to set eg->body and output counts and ents from eg_getBodyTopos
   parallel_for(1, getTopo, "getEgadsTopo");
   assert(cudaSuccess == cudaDeviceSynchronize());
+  const auto egEnts = Omega_h::HostRead<Omega_h::GO>(egEnts_d);
+  const auto egCounts = Omega_h::HostRead<int>(egCounts_d);
+  printf("created reads\n");
+  for (int i = 0; i < 3; ++i) {
+    eg->counts[i] = egCounts[i];
+    eg->entities[i] = (ego*)egEnts[i];
+    printf("host %d count %d ents %p\n",
+        i, eg->counts[i], eg->entities[i]);
+  }
+  printf("3.0\n");
+  const auto egBody = Omega_h::HostRead<Omega_h::GO>(egBody_d);
+  printf("host body %p\n", egBody[0]);
+  eg->body = (ego)egBody[0];
+  printf("3.1\n");
+
   // preprocess edge and vertex adjacency to faces
   for (int i = 0; i < 2; ++i) {
     std::vector<std::set<ego>> idxs2adj_faces(eg->counts[i]);
