@@ -119,7 +119,7 @@ Egads* egads_lite_load(std::string const& filename) {
   Omega_h::Write<int> egCounts_d(3);
   auto egEnts_d = OhWriteEgo(3);
   auto egBody_d = OhWriteEgo(1);
-  auto getTopo = OMEGA_H_LAMBDA(int i) {
+  auto getTopo = OMEGA_H_LAMBDA(int) {
     printf("cuda eg_getTopo\n");
     ego model_geom;
     int model_oclass;
@@ -171,7 +171,7 @@ Egads* egads_lite_load(std::string const& filename) {
     auto egCounts = eg->counts[2];
     auto egEnts = eg->entities[2];
     //count the set sizes
-    auto countIndexBody = OMEGA_H_LAMBDA(int i) {
+    auto countIndexBody = OMEGA_H_LAMBDA(int) {
       for (int j = 0; j < egCounts; ++j) {
         auto face = egEnts[j];
         int nadj_ents;
@@ -199,7 +199,7 @@ Egads* egads_lite_load(std::string const& filename) {
     Omega_h::Write<int> setCounts_d(eg->counts[i]);
     printf("3.2\n");
     //fill the sets
-    auto getIndexBody = OMEGA_H_LAMBDA(int i) {
+    auto getIndexBody = OMEGA_H_LAMBDA(int) {
       for (int j = 0; j < egCounts; ++j) {
         auto face = egEnts[j];
         int nadj_ents;
@@ -228,6 +228,23 @@ Egads* egads_lite_load(std::string const& filename) {
       }
     }
 
+    printf("3.4\n");
+    //copy each device entity pointer to the host
+    auto entPtrs_d = OhWriteEgo(eg->counts[i]);
+    auto copyDevPtrs = OMEGA_H_LAMBDA(int j) {
+      ego* ents = goToEgoPtr(egEnts_d[i]);
+      auto entPtr = ents[j];
+      entPtrs_d[j] = egoToGo(entPtr);
+    };
+    parallel_for(eg->counts[i], copyDevPtrs, "copyDevPtrs");
+    assert(cudaSuccess == cudaDeviceSynchronize());
+    auto entPtrs_h = Omega_h::HostRead<Omega_h::GO>(entPtrs_d);
+    eg->entities[i] = new ego[eg->counts[i]];
+    for(int j=0; j < eg->counts[i]; j++) {
+      eg->entities[i][j] = goToEgo(entPtrs_h[j]);
+    }
+    
+    printf("3.5\n");
     for (int j = 0; j < eg->counts[i]; ++j) {
       auto adj_faces = idxs2adj_faces[j];
       // HACK!: we have a really insane CAD model with nonsensical topology.
@@ -236,9 +253,28 @@ Egads* egads_lite_load(std::string const& filename) {
       // we actually want to just ignore these edges, so we won't create
       // classifier entries for them.
       if (adj_faces.size() == 1) continue;
-      eg->classifier[adj_faces] = eg->entities[i][j]; //TODO copy arrays of ego pointers to host
+      eg->classifier[adj_faces] = eg->entities[i][j];
     }
+    printf("3.6\n");
   }
+
+  //copy each device face pointer to the host
+  const int fdim = 2;
+  auto entPtrs_d = OhWriteEgo(eg->counts[fdim]);
+  auto copyDevPtrs = OMEGA_H_LAMBDA(int j) {
+    ego* ents = goToEgoPtr(egEnts_d[fdim]);
+    auto entPtr = ents[j];
+    entPtrs_d[j] = egoToGo(entPtr);
+  };
+  parallel_for(eg->counts[fdim], copyDevPtrs, "copyDevPtrs");
+  assert(cudaSuccess == cudaDeviceSynchronize());
+  auto entPtrs_h = Omega_h::HostRead<Omega_h::GO>(entPtrs_d);
+  eg->entities[fdim] = new ego[eg->counts[fdim]];
+  for(int j=0; j < eg->counts[fdim]; j++) {
+    eg->entities[fdim][j] = goToEgo(entPtrs_h[j]);
+  }
+  printf("3.7\n");
+
   return eg;
 }
 
@@ -260,20 +296,23 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
     int* class_dim, int* class_id) {
   std::set<ego> uniq_adj_faces;
   for (int i = 0; i < nadj_faces; ++i) {
-    auto adj_face = eg->entities[2][adj_face_ids[i] - 1];
+    const auto adjFaceId = adj_face_ids[i]-1;
+    auto adj_face = eg->entities[2][adjFaceId];
     uniq_adj_faces.insert(adj_face);
   }
   auto it = eg->classifier.find(uniq_adj_faces);
   if (it != eg->classifier.end()) {
     auto ent = it->second;
-    *class_dim = get_dim(ent);
+    //TODO port to GPU {
+    *class_dim = get_dim(ent); //FIXME failing here
     *class_id = EG_indexBodyTopo(eg->body, ent);
+    //}
   }
 }
 
 void egads_lite_free(Egads* eg) {
   for (int i = 0; i < 3; ++i) {
-    EG_free(eg->entities[i]);
+    EG_free(eg->entities[i]); //TODO will this work with new ego[...] ?
   }
   CALL(EG_deleteObject(eg->model));
   CALL(EG_close(eg->context));
