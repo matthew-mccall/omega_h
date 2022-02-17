@@ -18,7 +18,7 @@
 #ifdef OMEGA_H_USE_EGADS
 #include "Omega_h_egads.hpp"
 #endif
-#ifdef OMEGA_H_USE_EGADSlite
+#ifdef OMEGA_H_USE_EGADSLITE
 #include "Omega_h_egads_lite.hpp"
 #endif
 
@@ -244,13 +244,11 @@ static void snap_and_satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
     }
   } else
 #endif
-#ifdef OMEGA_H_USE_EGADSlite
+#ifdef OMEGA_H_USE_EGADSLITE
   if (opts.egads_lite_model) {
     ScopedTimer snap_timer("snap");
 
-    mesh->change_all_rcFieldsTorc();
     mesh->set_parting(OMEGA_H_GHOSTED);
-    mesh->change_all_rcFieldsToMesh();
 
     auto warp = egads_lite_get_snap_warp(
         mesh, opts.egads_lite_model, opts.verbosity >= EACH_REBUILD);
