@@ -304,9 +304,40 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
   if (it != eg->classifier.end()) {
     auto ent = it->second;
     //TODO port to GPU {
-    *class_dim = get_dim(ent); //FIXME failing here
-    *class_id = EG_indexBodyTopo(eg->body, ent);
+    //*class_dim = get_dim(ent); //FIXME failing here
+    //*class_id = EG_indexBodyTopo(eg->body, ent);
     //}
+    Omega_h::LOs d2oc = {dims2oclass[0],
+                         dims2oclass[1],
+                         dims2oclass[2],
+                         dims2oclass[3]};
+    Omega_h::Write<int> classDimAndId_d(2);
+    auto egBody = eg->body;
+    auto getEntClass = OMEGA_H_LAMBDA(int) {
+      //get model entity dimension
+      ego ref;
+      int oclass;
+      int mtype;
+      int nchild;
+      ego* children;
+      int* senses;
+      EG_getTopology(ent, &ref, &oclass, &mtype, nullptr, &nchild, &children, &senses);
+      classDimAndId_d[0] = -1;
+      for (int i = 0; i <= 3; ++i) {
+        if (d2oc[i] == oclass) {
+          classDimAndId_d[0] = i;
+          break;
+        }
+      }
+      //get model entity id
+      classDimAndId_d[1] = EG_indexBodyTopo(egBody, ent);
+    };
+    parallel_for(1, getEntClass, "getEntClass");
+    assert(cudaSuccess == cudaDeviceSynchronize());
+    auto classDimAndId = Omega_h::HostRead<int>(classDimAndId_d);
+    //set host vars
+    *class_dim = classDimAndId[0];
+    *class_id = classDimAndId[1];
   }
 }
 
