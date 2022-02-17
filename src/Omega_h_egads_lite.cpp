@@ -81,6 +81,27 @@ struct Egads {
   std::map<std::set<ego>, ego> classifier;
 };
 
+OMEGA_H_INLINE Omega_h::GO egoToGo(ego obj) {
+  return (Omega_h::GO) obj;
+}
+
+OMEGA_H_INLINE Omega_h::GO egoPtrToGo(ego* obj) {
+  return (Omega_h::GO) obj;
+}
+
+OMEGA_H_INLINE ego* goToEgoPtr(Omega_h::GO obj) {
+  return (ego*) obj;
+}
+
+OMEGA_H_INLINE ego goToEgo(Omega_h::GO obj) {
+  return (ego) obj;
+}
+
+Omega_h::Write<Omega_h::GO> OhWriteEgo(int n) {
+  assert(sizeof(Omega_h::GO) == sizeof(ego));
+  return Omega_h::Write<Omega_h::GO>(n);
+}
+
 Egads* egads_lite_load(std::string const& filename) {
   auto eg = new Egads;
   CALL(EG_open(&eg->context));
@@ -96,46 +117,31 @@ Egads* egads_lite_load(std::string const& filename) {
                        dims2oclass[2],
                        dims2oclass[3]};
   Omega_h::Write<int> egCounts_d(3);
-  assert(sizeof(Omega_h::GO) == sizeof(ego)); //HACK
-  Omega_h::Write<Omega_h::GO> egEnts_d(3);
-  Omega_h::Write<Omega_h::GO> egBody_d(1);
+  auto egEnts_d = OhWriteEgo(3);
+  auto egBody_d = OhWriteEgo(1);
   auto getTopo = OMEGA_H_LAMBDA(int i) {
     printf("cuda eg_getTopo\n");
-    //-not used as output {
-    //-passing them through the capture-by-value lambda
-    // requires them to be const... which they are not
     ego model_geom;
     int model_oclass;
     int model_mtype;
     int* body_senses;
-    //}
+    //needed outputs
     int nbodies_local;
     ego* bodies_local;
     printf("eg_getTopo 0.1\n");
-    EG_getTopology(egModel,
-        &model_geom,
-        &model_oclass,
-        &model_mtype,
-        nullptr,
-        &nbodies_local,
-        &bodies_local,
-        &body_senses);
+    EG_getTopology(egModel, &model_geom, &model_oclass, &model_mtype,
+        nullptr, &nbodies_local, &bodies_local, &body_senses);
     printf("nbodies_local %d\n", nbodies_local);
     assert(nbodies_local == 1);
-    egBody_d[0] = (Omega_h::GO) bodies_local[0];
+    egBody_d[0] = egoToGo(bodies_local[0]);
     printf("device body %p\n", bodies_local[0]);
     for (int i = 0; i < 3; ++i) {
       printf("d2oc[%d] %d\n", i, d2oc[i]);
       int counts;
       ego* ents;
-      EG_getBodyTopos(
-          bodies_local[0],
-          nullptr,
-          d2oc[i],
-          &counts,
-          &ents);
+      EG_getBodyTopos(bodies_local[0], nullptr, d2oc[i], &counts, &ents);
       egCounts_d[i] = counts;
-      egEnts_d[i] = (Omega_h::GO) ents;
+      egEnts_d[i] = egoPtrToGo(ents);
       printf("device %d count %d ents %p\n",
           i, egCounts_d[i], egEnts_d[i]);
     }
@@ -148,14 +154,13 @@ Egads* egads_lite_load(std::string const& filename) {
   printf("created reads\n");
   for (int i = 0; i < 3; ++i) {
     eg->counts[i] = egCounts[i];
-    eg->entities[i] = (ego*)egEnts[i];
-    printf("host %d count %d ents %p\n",
-        i, eg->counts[i], eg->entities[i]);
+    eg->entities[i] = goToEgoPtr(egEnts[i]);
+    printf("host %d count %d ents %p\n", i, eg->counts[i], eg->entities[i]);
   }
   printf("3.0\n");
   const auto egBody = Omega_h::HostRead<Omega_h::GO>(egBody_d);
   printf("host body %p\n", egBody[0]);
-  eg->body = (ego)egBody[0];
+  eg->body = goToEgo(egBody[0]);
   printf("3.1\n");
 
   // preprocess edge and vertex adjacency to faces
@@ -181,7 +186,7 @@ Egads* egads_lite_load(std::string const& filename) {
       // we actually want to just ignore these edges, so we won't create
       // classifier entries for them.
       if (adj_faces.size() == 1) continue;
-      eg->classifier[adj_faces] = eg->entities[i][j];
+      eg->classifier[adj_faces] = eg->entities[i][j]; //TODO copy arrays of ego pointers to host
     }
   }
   return eg;
