@@ -79,6 +79,8 @@ struct Egads {
   int counts[3];
   ego* entities[3];
   std::map<std::set<ego>, ego> classifier;
+  LOs counts_d;
+  ego* entities_d[3]; //HACK stored as arrays of GOs... see conversion fns below
 };
 
 OMEGA_H_INLINE Omega_h::GO egoToGo(ego obj) {
@@ -155,6 +157,8 @@ Egads* egads_lite_load(std::string const& filename) {
   for (int i = 0; i < 3; ++i) {
     eg->counts[i] = egCounts[i];
     eg->entities[i] = goToEgoPtr(egEnts[i]);
+    //store the pointer to the array of egads faces
+    eg->entities_d[i] = goToEgoPtr(egEnts[i]);
     printf("host %d count %d ents %p\n", i, eg->counts[i], eg->entities[i]);
   }
   printf("3.0\n");
@@ -256,7 +260,7 @@ Egads* egads_lite_load(std::string const& filename) {
       eg->classifier[adj_faces] = eg->entities[i][j];
     }
     printf("3.6\n");
-  }
+  } //done loop over vertices and edges
 
   //copy each device face pointer to the host
   const int fdim = 2;
@@ -274,6 +278,9 @@ Egads* egads_lite_load(std::string const& filename) {
     eg->entities[fdim][j] = goToEgo(entPtrs_h[j]);
   }
   printf("3.7\n");
+
+  //set struct device pointer for entity count
+  eg->counts_d = LOs{eg->counts[0], eg->counts[1], eg->counts[2]};
 
   return eg;
 }
@@ -303,10 +310,6 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
   auto it = eg->classifier.find(uniq_adj_faces);
   if (it != eg->classifier.end()) {
     auto ent = it->second;
-    //TODO port to GPU {
-    //*class_dim = get_dim(ent); //FIXME failing here
-    //*class_id = EG_indexBodyTopo(eg->body, ent);
-    //}
     Omega_h::LOs d2oc = {dims2oclass[0],
                          dims2oclass[1],
                          dims2oclass[2],
@@ -386,11 +389,12 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
 OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
   Vector<2> ignored;
   Vector<3> out = in;
-  CALL(EG_invEvaluate(g, in.data(), ignored.data(), out.data()));
+  EG_invEvaluate(g, in.data(), ignored.data(), out.data());
   return out;
 }
 
 Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
+  fprintf(stderr, "numverts %d\n", mesh->nverts());
   OMEGA_H_CHECK(mesh->dim() == 3);
   if (verbose) std::cout << "Querying closest points for surface vertices...\n";
   auto t0 = now();
@@ -398,25 +402,38 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
   auto class_ids = mesh->get_array<ClassId>(VERT, "class_id");
   auto coords = mesh->coords();
   auto warp = Write<Real>(mesh->nverts() * 3);
+  GOs egEnts_d{egoPtrToGo(eg->entities_d[0]),
+               egoPtrToGo(eg->entities_d[1]),
+               egoPtrToGo(eg->entities_d[2])};
+  auto egCounts_d = eg->counts_d;
+  auto egBody_d = eg->body;
   auto calc_warp = OMEGA_H_LAMBDA(LO i) {
     auto a = get_vector<3>(coords, i);
     Int class_dim = class_dims[i];
     OMEGA_H_CHECK(class_dim >= 0);
     OMEGA_H_CHECK(class_dim <= 3);
     auto d = vector_3(0, 0, 0);
-    if (0 < class_dim && class_dim < 3) {
+    if (0 < class_dim && class_dim < 3) { //edges and faces only
       auto index = class_ids[i] - 1;
       OMEGA_H_CHECK(index >= 0);
-      OMEGA_H_CHECK(index < eg->counts[class_dim]);
-      auto g = eg->entities[class_dim][index];
-      auto index2 = EG_indexBodyTopo(eg->body, g);
+      OMEGA_H_CHECK(index < egCounts_d[class_dim]);
+      auto ents = goToEgoPtr(egEnts_d[class_dim]);
+      auto g = ents[index];
+      auto index2 = EG_indexBodyTopo(egBody_d, g);
       OMEGA_H_CHECK(index2 == index + 1);
+      {
+        int isEdge = (g->oclass == EGADS_EDGE);
+        int isFace = (g->oclass == EGADS_FACE);
+        printf("vtx %d class_dim %d oclass %d isEdge %d isFace %d pt %.3f %.3f %.3f\n",
+            i, class_dim, g->oclass, isEdge, isFace, a[0], a[1], a[2]);
+      }
       auto b = get_closest_point(g, a);
       d = b - a;
     }
     set_vector(warp, i, d);
   };
   parallel_for(mesh->nverts(), std::move(calc_warp), "calc_warp"); 
+  assert(cudaSuccess == cudaDeviceSynchronize());
   auto t1 = now();
   if (verbose) {
     std::cout << "Querying closest points for surface vertices took "
