@@ -4,6 +4,7 @@
 #include "Omega_h_mesh.hpp"
 #include "Omega_h_timer.hpp"
 #include "Omega_h_for.hpp"
+#include <Omega_h_file.hpp> //vtk
 
 #include <Omega_h_fail.hpp>
 #include <iostream>
@@ -394,21 +395,28 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
   }
 }
 
-OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
+OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in, int isDebug=0) {
   Vector<2> ignored;
   Vector<3> out = in;
+  if(isDebug) {
+    printf("in %.3f %.3f %.3f out %.3f %.3f %.3f\\n",
+        in[0], in[1], in[2],
+        out[0], out[1], out[2]);
+  }
   CALL(EG_invEvaluate(g, in.data(), ignored.data(), out.data()));
   return out;
 }
 
 Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
   fprintf(stderr, "numverts %d\n", mesh->nverts());
+  Omega_h::vtk::write_parallel("preWarp", mesh, mesh->dim());
   OMEGA_H_CHECK(mesh->dim() == 3);
   if (verbose) std::cout << "Querying closest points for surface vertices...\n";
   auto t0 = now();
   auto class_dims = mesh->get_array<I8>(VERT, "class_dim");
   auto class_ids = mesh->get_array<ClassId>(VERT, "class_id");
   auto coords = mesh->coords();
+  auto closePts = Write<Real>(mesh->nverts() * 3);
   auto warp = Write<Real>(mesh->nverts() * 3);
   GOs egEnts_d{egoPtrToGo(eg->entities_d[0]),
                egoPtrToGo(eg->entities_d[1]),
@@ -421,6 +429,7 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
     OMEGA_H_CHECK(class_dim >= 0);
     OMEGA_H_CHECK(class_dim <= 3);
     auto d = vector_3(0, 0, 0);
+    auto clPt = vector_3(0, 0, 0);
     if (0 < class_dim && class_dim < 3) { //edges and faces only
       auto index = class_ids[i] - 1;
       OMEGA_H_CHECK(index >= 0);
@@ -430,20 +439,27 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
       auto index2 = EG_indexBodyTopo(egBody_d, g);
       assert(index2 > 0);
       OMEGA_H_CHECK(index2 == index + 1);
+      int debug = 0;
       if(i == 22 && index2 == 5 && class_dim == 2) {
+        debug=1;
         int isEdge = (g->oclass == EGADS_EDGE);
         int isFace = (g->oclass == EGADS_FACE);
         printf("vtx %d class_id %d class_dim %d oclass %d isEdge %d isFace %d pt %.3f %.3f %.3f\n",
             i, index2, class_dim, g->oclass, isEdge, isFace, a[0], a[1], a[2]);
       }
-      auto b = get_closest_point(g, a);
+      auto b = get_closest_point(g, a, debug);
+      clPt = b;
       d = b - a;
     }
     set_vector(warp, i, d);
+    set_vector(closePts, i, clPt);
   };
   parallel_for(mesh->nverts(), std::move(calc_warp), "calc_warp"); 
   assert(cudaSuccess == cudaDeviceSynchronize());
   auto t1 = now();
+  mesh->add_tag(0, "warpVec", 3, read(warp));
+  mesh->add_tag(0, "closePts", 3, read(closePts));
+  Omega_h::vtk::write_parallel("warpVec", mesh, mesh->dim());
   if (verbose) {
     std::cout << "Querying closest points for surface vertices took "
               << (t1 - t0) << " seconds\n";
