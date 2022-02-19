@@ -65,6 +65,8 @@ namespace Omega_h {
 OMEGA_H_INLINE void call_egads(
     int result, char const* code, char const* file, int line) {
   if (EGADS_SUCCESS == result) return;
+  OMEGA_H_CHECK_PRINTF(false,
+      "EGADS call %s returned %d at %s +%d\n", code, result, file, line);
 }
 
 #define CALL(f) call_egads((f), #f, __FILE__, __LINE__)
@@ -131,8 +133,8 @@ Egads* egads_lite_load(std::string const& filename) {
     int nbodies_local;
     ego* bodies_local;
     printf("eg_getTopo 0.1\n");
-    EG_getTopology(egModel, &model_geom, &model_oclass, &model_mtype,
-        nullptr, &nbodies_local, &bodies_local, &body_senses);
+    CALL(EG_getTopology(egModel, &model_geom, &model_oclass, &model_mtype,
+        nullptr, &nbodies_local, &bodies_local, &body_senses));
     printf("nbodies_local %d\n", nbodies_local);
     assert(nbodies_local == 1);
     egBody_d[0] = egoToGo(bodies_local[0]);
@@ -141,7 +143,7 @@ Egads* egads_lite_load(std::string const& filename) {
       printf("d2oc[%d] %d\n", i, d2oc[i]);
       int counts;
       ego* ents;
-      EG_getBodyTopos(bodies_local[0], nullptr, d2oc[i], &counts, &ents);
+      CALL(EG_getBodyTopos(bodies_local[0], nullptr, d2oc[i], &counts, &ents));
       egCounts_d[i] = counts;
       egEnts_d[i] = egoPtrToGo(ents);
       printf("device %d count %d ents %p\n",
@@ -180,10 +182,12 @@ Egads* egads_lite_load(std::string const& filename) {
         auto face = egEnts[j];
         int nadj_ents;
         ego* adj_ents;
-        EG_getBodyTopos(egBody, face, d2oc[i], &nadj_ents, &adj_ents);
+        CALL(EG_getBodyTopos(egBody, face, d2oc[i], &nadj_ents, &adj_ents));
         for (int k = 0; k < nadj_ents; ++k) {
           auto adj_ent = adj_ents[k];
-          auto idx = EG_indexBodyTopo(egBody, adj_ent) - 1;
+          auto egIdx = EG_indexBodyTopo(egBody, adj_ent);
+          assert(egIdx > 0); //egads error codes are <=0
+          auto idx = egIdx-1;
           setSizes_d[idx]++;
         }
       }
@@ -208,10 +212,12 @@ Egads* egads_lite_load(std::string const& filename) {
         auto face = egEnts[j];
         int nadj_ents;
         ego* adj_ents;
-        EG_getBodyTopos(egBody, face, d2oc[i], &nadj_ents, &adj_ents);
+        CALL(EG_getBodyTopos(egBody, face, d2oc[i], &nadj_ents, &adj_ents));
         for (int k = 0; k < nadj_ents; ++k) {
           auto adj_ent = adj_ents[k];
-          auto idx = EG_indexBodyTopo(egBody, adj_ent) - 1;
+          auto egIdx = EG_indexBodyTopo(egBody, adj_ent);
+          assert(egIdx > 0);
+          auto idx = egIdx-1;
           auto ohIdx = setCounts_d[idx]++;
           idxs2adj_faces_d[ohIdx] = egoToGo(face);
         }
@@ -324,7 +330,7 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
       int nchild;
       ego* children;
       int* senses;
-      EG_getTopology(ent, &ref, &oclass, &mtype, nullptr, &nchild, &children, &senses);
+      CALL(EG_getTopology(ent, &ref, &oclass, &mtype, nullptr, &nchild, &children, &senses));
       classDimAndId_d[0] = -1;
       for (int i = 0; i <= 3; ++i) {
         if (d2oc[i] == oclass) {
@@ -333,7 +339,9 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
         }
       }
       //get model entity id
-      classDimAndId_d[1] = EG_indexBodyTopo(egBody, ent);
+      auto egIdx = EG_indexBodyTopo(egBody, ent);
+      assert(egIdx > 0);
+      classDimAndId_d[1] = egIdx;
     };
     parallel_for(1, getEntClass, "getEntClass");
     assert(cudaSuccess == cudaDeviceSynchronize());
@@ -389,7 +397,7 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
 OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
   Vector<2> ignored;
   Vector<3> out = in;
-  EG_invEvaluate(g, in.data(), ignored.data(), out.data());
+  CALL(EG_invEvaluate(g, in.data(), ignored.data(), out.data()));
   return out;
 }
 
@@ -420,12 +428,13 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
       auto ents = goToEgoPtr(egEnts_d[class_dim]);
       auto g = ents[index];
       auto index2 = EG_indexBodyTopo(egBody_d, g);
+      assert(index2 > 0);
       OMEGA_H_CHECK(index2 == index + 1);
-      {
+      if(i == 22 && index2 == 5 && class_dim == 2) {
         int isEdge = (g->oclass == EGADS_EDGE);
         int isFace = (g->oclass == EGADS_FACE);
-        printf("vtx %d class_dim %d oclass %d isEdge %d isFace %d pt %.3f %.3f %.3f\n",
-            i, class_dim, g->oclass, isEdge, isFace, a[0], a[1], a[2]);
+        printf("vtx %d class_id %d class_dim %d oclass %d isEdge %d isFace %d pt %.3f %.3f %.3f\n",
+            i, index2, class_dim, g->oclass, isEdge, isFace, a[0], a[1], a[2]);
       }
       auto b = get_closest_point(g, a);
       d = b - a;
