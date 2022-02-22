@@ -395,14 +395,9 @@ void egads_lite_reclassify(Mesh* mesh, Egads* eg) {
   }
 }
 
-OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in, int isDebug=0) {
+OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
   Vector<2> ignored;
   Vector<3> out = in;
-  if(isDebug) {
-    printf("in %.3f %.3f %.3f out %.3f %.3f %.3f\\n",
-        in[0], in[1], in[2],
-        out[0], out[1], out[2]);
-  }
   CALL(EG_invEvaluate(g, in.data(), ignored.data(), out.data()));
   return out;
 }
@@ -424,6 +419,7 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
   auto egCounts_d = eg->counts_d;
   auto egBody_d = eg->body;
   auto calc_warp = OMEGA_H_LAMBDA(LO i) {
+    i=22;
     auto a = get_vector<3>(coords, i);
     Int class_dim = class_dims[i];
     OMEGA_H_CHECK(class_dim >= 0);
@@ -446,15 +442,16 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
         int isFace = (g->oclass == EGADS_FACE);
         printf("vtx %d class_id %d class_dim %d oclass %d isEdge %d isFace %d pt %.3f %.3f %.3f\n",
             i, index2, class_dim, g->oclass, isEdge, isFace, a[0], a[1], a[2]);
+        auto b = get_closest_point(g, a);
+        printf("clPt %.3f %.3f %.3f\n", b[0], b[1], b[2]);
+        clPt = b;
+        d = b - a;
       }
-      auto b = get_closest_point(g, a, debug);
-      clPt = b;
-      d = b - a;
     }
     set_vector(warp, i, d);
     set_vector(closePts, i, clPt);
   };
-  parallel_for(mesh->nverts(), std::move(calc_warp), "calc_warp"); 
+  parallel_for(1, std::move(calc_warp), "calc_warp"); 
   assert(cudaSuccess == cudaDeviceSynchronize());
   auto t1 = now();
   mesh->add_tag(0, "warpVec", 3, read(warp));
