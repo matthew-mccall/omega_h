@@ -9,6 +9,8 @@
 #include <Omega_h_egads_lite.hpp>
 #endif
 
+#include <cuda.h>
+
 #include <iostream>
 
 static void compute_implied_metric(Omega_h::Mesh* mesh) {
@@ -26,8 +28,34 @@ static void compute_target_metric(Omega_h::Mesh* mesh) {
       Omega_h::symm_ncomps(mesh->dim()), metrics);
 }
 
+void checkCudaError(int line) {
+#ifdef __NVCC__
+  cudaError_t code = cudaDeviceSynchronize();
+  const char * errorMessage = cudaGetErrorString(code);
+  if( code != cudaSuccess ) {
+    fprintf(stderr, "CUDA error on line %d Error code: %d (%s)\n", line, code, errorMessage);
+  }
+  assert(code == cudaSuccess);
+#endif
+}
+
+void setCudaStackSz() {
+  size_t stackLimit;
+  cuCtxGetLimit(&stackLimit, CU_LIMIT_STACK_SIZE);
+  checkCudaError(__LINE__);
+  printf("original stack limit %d\n", stackLimit);
+  stackLimit=8*1024;
+  cuCtxSetLimit(CU_LIMIT_STACK_SIZE,stackLimit);
+  checkCudaError(__LINE__);
+  cuCtxGetLimit(&stackLimit, CU_LIMIT_STACK_SIZE);
+  checkCudaError(__LINE__);
+  printf("new stack limit %d\n", stackLimit);
+  printf("stack limit %d\n", stackLimit);
+}
+
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
+  setCudaStackSz();
   Omega_h::CmdLine cmdline;
   cmdline.add_arg<std::string>("mesh_in.meshb");
   cmdline.add_arg<std::string>("mesh_out.meshb");
@@ -58,6 +86,7 @@ int main(int argc, char** argv) {
     opts.egads_lite_model = eg;
   }
 #endif
+  fprintf(stderr, "numverts %d\n", mesh.nents(0));
   auto has_viz = cmdline.parsed("--viz");
   Omega_h::vtk::Writer writer;
   if (has_viz) {

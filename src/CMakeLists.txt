@@ -211,6 +211,7 @@ endif()
 
 if(Omega_h_USE_EGADSlite)
   target_link_libraries(omega_h PUBLIC ohEgadslite)
+  target_link_libraries(omega_h PUBLIC cuda)
 endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
