@@ -4,6 +4,7 @@
 #include <Omega_h_library.hpp>
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_metric.hpp>
+#include <Omega_h_for.hpp>
 
 #ifdef OMEGA_H_USE_EGADSLITE
 #include <Omega_h_egads_lite.hpp>
@@ -37,6 +38,37 @@ void checkCudaError(int line) {
   }
   assert(code == cudaSuccess);
 #endif
+}
+
+void hackClassification(Omega_h::Mesh* mesh) {
+  fprintf(stderr, "hacking classification\n");
+  OMEGA_H_CHECK(mesh->dim() == 3);
+  auto vtx_class_dims = mesh->get_array<Omega_h::I8>(Omega_h::VERT, "class_dim");
+  auto vtx_class_ids_r = mesh->get_array<Omega_h::ClassId>(Omega_h::VERT, "class_id");
+  auto vtx_class_ids_w = Omega_h::deep_copy(vtx_class_ids_r, "vtxClassIds_w");
+  auto setVtxClass = OMEGA_H_LAMBDA(int i) {
+    if(vtx_class_dims[i] == 1 && vtx_class_ids_w[i] == 1) {
+      printf("vtx %i reclassified\n",i);
+      vtx_class_ids_w[i] = 7;
+    }
+  };
+  Omega_h::parallel_for(mesh->nents(0), setVtxClass, "setVtxClass");
+  fprintf(stderr, "done hacking vtx classification\n");
+  mesh->set_tag(0, "class_id", Omega_h::read(vtx_class_ids_w));
+
+  auto edge_class_dims = mesh->get_array<Omega_h::I8>(Omega_h::EDGE, "class_dim");
+  auto edge_class_ids_r = mesh->get_array<Omega_h::ClassId>(Omega_h::EDGE, "class_id");
+  auto edge_class_ids_w = Omega_h::deep_copy(edge_class_ids_r, "edgeClassIds_w");
+  auto setEdgeClass = OMEGA_H_LAMBDA(int i) {
+    if(edge_class_dims[i] == 1 && edge_class_ids_w[i] == 1) {
+      printf("edge %i reclassified\n",i);
+      edge_class_ids_w[i] = 7;
+    }
+  };
+  Omega_h::parallel_for(mesh->nents(1), setEdgeClass, "setEdgeClass");
+  fprintf(stderr, "done hacking edge classification\n");
+  mesh->set_tag(1, "class_id", Omega_h::read(edge_class_ids_w));
+
 }
 
 void setCudaStackSz() {
@@ -84,6 +116,8 @@ int main(int argc, char** argv) {
     auto eg = Omega_h::egads_lite_load(model_path);
     Omega_h::egads_lite_reclassify(&mesh, eg);
     opts.egads_lite_model = eg;
+    hackClassification(&mesh); //there are problems...
+    Omega_h::vtk::write_parallel("postHack", &mesh, mesh.dim());
   }
 #endif
   fprintf(stderr, "numverts %d\n", mesh.nents(0));
