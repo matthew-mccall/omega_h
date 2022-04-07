@@ -404,7 +404,7 @@ OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
 
 Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
   fprintf(stderr, "numverts %d\n", mesh->nverts());
-  Omega_h::vtk::write_parallel("preWarp", mesh, mesh->dim());
+  //Omega_h::vtk::write_parallel("preWarp", mesh, mesh->dim());
   OMEGA_H_CHECK(mesh->dim() == 3);
   if (verbose) std::cout << "Querying closest points for surface vertices...\n";
   auto t0 = now();
@@ -455,7 +455,7 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
   auto t1 = now();
   mesh->add_tag(0, "warpVec", 3, read(warp));
   mesh->add_tag(0, "closePts", 3, read(closePts));
-  Omega_h::vtk::write_parallel("warpVec", mesh, mesh->dim());
+  //Omega_h::vtk::write_parallel("warpVec", mesh, mesh->dim());
   if (verbose) {
     std::cout << "Querying closest points for surface vertices took "
               << (t1 - t0) << " seconds\n";
