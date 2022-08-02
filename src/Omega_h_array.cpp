@@ -91,8 +91,14 @@ std::string const& Write<T>::name() const {
 template <typename T>
 void Write<T>::set(LO i, T value) const {
   ScopedTimer timer("single host to device");
-#if defined(OMEGA_H_USE_CUDA) || defined(OMEGA_H_USE_HIP)
+#if defined(OMEGA_H_USE_CUDA)
   hipMemcpy(data() + i, &value, sizeof(T), hipMemcpyHostToDevice);
+#elif defined(OMEGA_H_USE_HIP)
+  //the following compiles, and passes the hipDirectMemWrite test,
+  //but fails with an assertion in Omega_h_adj.cpp::391 when running
+  //the deltawing adapt 500k test
+  T* dest = data()+i;
+  *dest = value;
 #else
   operator[](i) = value;
 #endif
