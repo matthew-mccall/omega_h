@@ -99,6 +99,8 @@ void Write<T>::set(LO i, T value) const {
   //the deltawing adapt 500k test
   T* dest = data()+i;
   *dest = value;
+  auto err = hipDeviceSynchronize();
+  assert(err == hipSuccess);
 #else
   operator[](i) = value;
 #endif
