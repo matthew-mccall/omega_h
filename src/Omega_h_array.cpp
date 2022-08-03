@@ -94,12 +94,11 @@ void Write<T>::set(LO i, T value) const {
 #if defined(OMEGA_H_USE_CUDA)
   hipMemcpy(data() + i, &value, sizeof(T), hipMemcpyHostToDevice);
 #elif defined(OMEGA_H_USE_HIP)
-  //the following compiles, and passes the hipDirectMemWrite test,
-  //but fails with an assertion in Omega_h_adj.cpp::391 when running
-  //the deltawing adapt 500k test
+  auto err = hipDeviceSynchronize(); //FIXME there appears to be a race without this
+  assert(err == hipSuccess);
   T* dest = data()+i;
   *dest = value;
-  auto err = hipDeviceSynchronize();
+  err = hipDeviceSynchronize();
   assert(err == hipSuccess);
 #else
   operator[](i) = value;
