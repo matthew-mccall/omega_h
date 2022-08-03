@@ -10,8 +10,7 @@ namespace Omega_h {
 template <typename T>
 LOs offset_scan(Read<T> a, std::string const& name) {
   OMEGA_H_TIME_FUNCTION;
-  Write<LO> out(a.size() + 1, name);
-  out.set(0, 0);
+  Write<LO> out(a.size() + 1, 0, name);
   auto const first = CastIterator<LO, T>(a.begin());
   auto const last = CastIterator<LO, T>(a.end());
   auto const result = out.begin() + 1;
