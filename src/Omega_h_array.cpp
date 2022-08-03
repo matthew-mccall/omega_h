@@ -98,8 +98,6 @@ void Write<T>::set(LO i, T value) const {
   assert(err == hipSuccess);
   T* dest = data()+i;
   *dest = value;
-  err = hipDeviceSynchronize();
-  assert(err == hipSuccess);
 #else
   operator[](i) = value;
 #endif
