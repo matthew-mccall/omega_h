@@ -110,8 +110,6 @@ int main(int argc, char** argv) {
       Omega_h::limit_metric_gradation(&mesh, original_metrics, 1.0);
   mesh.add_tag(Omega_h::VERT, "target_metric", Omega_h::symm_ncomps(mesh.dim()),
       graded_metrics);
-  Omega_h::binary::write("deltaWing.osh", &mesh);
-  Omega_h::vtk::write_parallel("deltaWing.vtk", &mesh);
   Omega_h::add_implied_metric_tag(&mesh);
   mesh.ask_qualities();
   auto opts = Omega_h::AdaptOpts(&mesh);
@@ -127,6 +125,5 @@ int main(int argc, char** argv) {
 #ifdef OMEGA_H_USE_EGADS
   Omega_h::egads_free(geom);
 #endif
-  Omega_h::vtk::write_parallel("deltaWing_adapted_omegah.vtk", &mesh);
   return 0;
 }
