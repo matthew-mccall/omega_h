@@ -91,13 +91,8 @@ std::string const& Write<T>::name() const {
 template <typename T>
 void Write<T>::set(LO i, T value) const {
   ScopedTimer timer("single host to device");
-#if defined(OMEGA_H_USE_CUDA)
+#if defined(OMEGA_H_USE_CUDA) || defined(OMEGA_H_USE_HIP)
   hipMemcpy(data() + i, &value, sizeof(T), hipMemcpyHostToDevice);
-#elif defined(OMEGA_H_USE_HIP)
-  auto err = hipDeviceSynchronize(); //FIXME there appears to be a race without this
-  assert(err == hipSuccess);
-  T* dest = data()+i;
-  *dest = value;
 #else
   operator[](i) = value;
 #endif
