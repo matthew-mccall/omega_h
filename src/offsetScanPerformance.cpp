@@ -17,9 +17,9 @@ static void test_scan(size_t size) {
 int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   OMEGA_H_CHECK(std::string(lib.version()) == OMEGA_H_SEMVER);
-  auto size = std::size_t(1);
-  for(int i=0; i<20; i++) {
-    size = size << 1;
+  auto size = std::size_t(1) << 21;
+  for(int i=0; i<16; i++) {
+    size = size >> 1;
     printf("%d size %lu\n", i, size);
     test_scan(size);
   }
