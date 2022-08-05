@@ -19,6 +19,7 @@ static void test_scan(size_t size) {
 int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   OMEGA_H_CHECK(std::string(lib.version()) == OMEGA_H_SEMVER);
+  printf("omega_h %s %s\n", lib.version(), lib.commit_id());
   auto size = std::size_t(1) << 21;
   ScopedTimer totalTime("total time");
   for(int i=0; i<16; i++) {
