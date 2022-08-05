@@ -65,7 +65,19 @@ OutputIterator inclusive_scan(
   maybe_pooled_device_free(d_temp_storage, temp_storage_bytes);
   return result + n;
 #elif defined(OMEGA_H_USE_HIP)
-  return thrust::inclusive_scan(thrust::device, first, last, result);
+  //two phase scan - see https://v01dxyz.github.io/rocprim-documentation/devicemodule/scan.html#
+  using VT = typename InputIterator::value_type;
+  std::size_t temp_storage_bytes;
+  int const n = int(last - first);
+  auto err = rocprim::inclusive_scan(
+      nullptr, temp_storage_bytes, first, result, n, rocprim::plus<VT>());
+  OMEGA_H_CHECK(err == hipSuccess);
+  void* d_temp_storage = maybe_pooled_device_malloc(temp_storage_bytes);
+  err = rocprim::inclusive_scan(
+      d_temp_storage, temp_storage_bytes, first, result, n, rocprim::plus<VT>());
+  OMEGA_H_CHECK(err == hipSuccess);
+  maybe_pooled_device_free(d_temp_storage, temp_storage_bytes);
+  return result + n;
 #endif
 }
 
