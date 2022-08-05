@@ -92,7 +92,9 @@ template <typename T>
 void Write<T>::set(LO i, T value) const {
   ScopedTimer timer("single host to device");
 #if defined(OMEGA_H_USE_CUDA) || defined(OMEGA_H_USE_HIP)
-  hipMemcpy(data() + i, &value, sizeof(T), hipMemcpyHostToDevice);
+  auto ptr = data();
+  auto setToZero = OMEGA_H_LAMBDA(int) {ptr[i]=value;};
+  parallel_for(1, setToZero, "setIndexToZero");
 #else
   operator[](i) = value;
 #endif
