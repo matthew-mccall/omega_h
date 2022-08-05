@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "Omega_h_for.hpp"
+#include "Omega_h_malloc.hpp"
 
 namespace Omega_h {
 
@@ -103,9 +104,15 @@ void Write<T>::set(LO i, T value) const {
 template <typename T>
 T Write<T>::get(LO i) const {
   ScopedTimer timer("single device to host");
-#if defined(OMEGA_H_USE_CUDA) || defined(OMEGA_H_USE_HIP)
+#if defined(OMEGA_H_USE_CUDA)
   T value;
   hipMemcpy(&value, data() + i, sizeof(T), hipMemcpyDeviceToHost);
+  return value;
+#elif defined(OMEGA_H_USE_HIP)
+  T* hostPtr = static_cast<T*>(maybe_pooled_host_malloc(sizeof(T)));
+  hipMemcpy(hostPtr, data() + i, sizeof(T), hipMemcpyDeviceToHost);
+  T value = *hostPtr;
+  maybe_pooled_host_free(hostPtr,sizeof(T));
   return value;
 #else
   return operator[](i);
