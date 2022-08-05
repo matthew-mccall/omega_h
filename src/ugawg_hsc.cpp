@@ -78,6 +78,7 @@ void printBinding(int rank) {
 
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
+  printf("omega_h %s %s\n", lib.version(), lib.commit_id());
   printBinding(lib.world()->rank());
   Omega_h::CmdLine cmdline;
   cmdline.add_arg<std::string>("mesh_in.meshb");
