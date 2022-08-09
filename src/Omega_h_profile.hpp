@@ -6,6 +6,8 @@
 #include <vector>
 #ifdef OMEGA_H_USE_KOKKOS
 #include <Omega_h_kokkos.hpp>
+#elif defined(OMEGA_H_USE_HIP)
+#include <roctracer/roctx.h>
 #endif
 
 namespace Omega_h {
@@ -172,6 +174,9 @@ namespace Omega_h {
 inline void begin_code(char const* name) {
 #ifdef OMEGA_H_USE_KOKKOS
   Kokkos::Profiling::pushRegion(name);
+#elif defined(OMEGA_H_USE_HIP)
+  auto err = roctxRangePush(name);
+  assert(!err);
 #endif
   if (profile::global_singleton_history) {
     profile::global_singleton_history->start(name);
@@ -189,6 +194,9 @@ inline double get_runtime () {
 inline void end_code() {
 #ifdef OMEGA_H_USE_KOKKOS
   Kokkos::Profiling::popRegion();
+#elif defined(OMEGA_H_USE_HIP)
+  auto err = roctxRangePop();
+  assert(!err);
 #endif
   if (profile::global_singleton_history) {
     profile::global_singleton_history->stop();
