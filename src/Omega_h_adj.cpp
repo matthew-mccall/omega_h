@@ -9,6 +9,8 @@
 #include "Omega_h_map.hpp"
 #include "Omega_h_sort.hpp"
 #include "Omega_h_timer.hpp"
+#include "Omega_h_file.hpp"
+#include <fstream>
 
 namespace Omega_h {
 
@@ -358,7 +360,21 @@ template <Int deg, typename T>
 void find_matches_deg(LOs const a2fv, Read<T> const av2v,
     Read<T> const bv2v, Adj const v2b, Write<LO>* a2b_out, Write<I8>* codes_out,
     bool const allow_duplicates) {
+  static int callNum = 0;
   OMEGA_H_TIME_FUNCTION;
+//  {
+//    std::string suffix = std::to_string(callNum) + ".bin";
+//    std::ofstream ostrm("a2fv" + suffix, std::ios::binary);
+//    binary::write_array(ostrm,a2fv,false,false);
+//    std::ofstream ostrm2("av2v" + suffix, std::ios::binary);
+//    binary::write_array(ostrm2,av2v,false,false);
+//    std::ofstream ostrm3("bv2v" + suffix, std::ios::binary);
+//    binary::write_array(ostrm3,bv2v,false,false);
+//    std::ofstream ostrm4("v2b_a2ab" + suffix, std::ios::binary);
+//    binary::write_array(ostrm4,v2b.a2ab,false,false);
+//    std::ofstream ostrm5("v2b_ab2b" + suffix, std::ios::binary);
+//    binary::write_array(ostrm5,v2b.ab2b,false,false);
+//  }
   LO const na = a2fv.size();
   OMEGA_H_CHECK(na * deg == av2v.size());
   LOs const v2vb = v2b.a2ab;
@@ -393,6 +409,7 @@ void find_matches_deg(LOs const a2fv, Read<T> const av2v,
   parallel_for(na, std::move(f));
   *a2b_out = a2b;
   *codes_out = codes;
+  callNum++;
 }
 
 template <typename T>

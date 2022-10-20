@@ -13,11 +13,26 @@
 #include "Omega_h_migrate.hpp"
 #include "Omega_h_owners.hpp"
 #include "Omega_h_simplify.hpp"
+#include "Omega_h_file.hpp"
+#include <fstream>
 
 namespace Omega_h {
 
 void add_ents2verts(
     Mesh* mesh, Int ent_dim, LOs ev2v, GOs vert_globals, GOs elem_globals) {
+  static int callNum = 0;
+  {
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm("ev2v" + suffix, std::ios::binary);
+    binary::write_array(ostrm,ev2v,false,false);
+    std::ofstream ostrm2("vert_globals" + suffix, std::ios::binary);
+    binary::write_array(ostrm2,vert_globals,false,false);
+    if(elem_globals.exists() && elem_globals.size() > 0 ) {
+      fprintf(stderr, "writing elem_globals %d\n", callNum);
+      std::ofstream ostrm3("elem_globals" + suffix, std::ios::binary);
+      binary::write_array(ostrm3,elem_globals,false,false);
+    }
+  }
   auto comm = mesh->comm();
   auto nverts_per_ent = element_degree(mesh->family(), ent_dim, VERT);
   auto ne = divide_no_remainder(ev2v.size(), nverts_per_ent);
@@ -53,6 +68,7 @@ void add_ents2verts(
   } else {
     mesh->add_tag(ent_dim, "global", 1, GOs(ne, 0, 1));
   }
+  callNum++;
 }
 
 void build_verts_from_globals(Mesh* mesh, GOs vert_globals) {
@@ -68,16 +84,23 @@ void build_verts_from_globals(Mesh* mesh, GOs vert_globals) {
 
 void build_ents_from_elems2verts(
     Mesh* mesh, LOs ev2v, GOs vert_globals, GOs elem_globals) {
+  static int callNum = 0;
+  {
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm("elems2verts_ev2v" + suffix, std::ios::binary);
+    binary::write_array(ostrm,ev2v,false,false);
+  }
   auto comm = mesh->comm();
   auto elem_dim = mesh->dim();
   for (Int mdim = 1; mdim < elem_dim; ++mdim) {
-    auto mv2v = find_unique(ev2v, mesh->family(), elem_dim, mdim);
+    auto mv2v = find_unique(ev2v, mesh->family(), elem_dim, mdim); //mv2v appears to be wrong in kokkos
     add_ents2verts(mesh, mdim, mv2v, vert_globals, elem_globals);
   }
   add_ents2verts(mesh, elem_dim, ev2v, vert_globals, elem_globals);
   if (!comm->reduce_and(is_sorted(vert_globals))) {
     reorder_by_globals(mesh);
   }
+  callNum++;
 }
 
 void build_from_elems2verts(Mesh* mesh, CommPtr comm, Omega_h_Family family,
