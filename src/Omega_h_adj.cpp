@@ -133,24 +133,61 @@ Read<I8> find_canonical_jumps(
 }
 
 static LOs find_unique_deg(Int const deg, LOs const uv2v) {
+  static int callNum=0;
   OMEGA_H_TIME_FUNCTION;
   auto const codes = get_codes_to_canonical(deg, uv2v);
   auto const uv2v_canon = align_ev2v(deg, uv2v, codes);
+  {
+    fprintf(stderr, "find_unique_deg callNum %d deg %d\n", callNum, deg);
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm("find_unique_deg_uv2v_canon" + suffix, std::ios::binary);
+    binary::write_array(ostrm,uv2v_canon,false,false);
+  }
   auto const sorted2u = sort_by_keys(uv2v_canon, deg);
+  {
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm2("find_unique_deg_sorted2u" + suffix, std::ios::binary);
+    binary::write_array(ostrm2,sorted2u,false,false);
+  }
   auto const jumps = find_canonical_jumps(deg, uv2v_canon, sorted2u);
+  {
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm2("find_unique_deg_jumps" + suffix, std::ios::binary);
+    binary::write_array(ostrm2,jumps,false,false);
+  } //matches cuda vs serial
   auto const e2sorted = collect_marked(jumps);
+  {
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm2("find_unique_deg_e2sorted" + suffix, std::ios::binary);
+    binary::write_array(ostrm2,e2sorted,false,false);
+  } //different cuda vs serial
   auto const e2u = compound_maps(e2sorted, sorted2u);
+  {
+    std::string suffix = std::to_string(callNum) + ".bin";
+    std::ofstream ostrm2("find_unique_deg_e2u" + suffix, std::ios::binary);
+    binary::write_array(ostrm2,e2u,false,false);
+  } //different result cuda vs serial
+
+  callNum++;
   return unmap<LO>(e2u, uv2v, deg);
 }
 
 LOs find_unique(LOs const hv2v, Omega_h_Family const family, Int const high_dim,
     Int const low_dim) {
+  static int callNum=0;
   OMEGA_H_TIME_FUNCTION;
   OMEGA_H_CHECK(high_dim > low_dim);
   OMEGA_H_CHECK(low_dim <= 2);
   OMEGA_H_CHECK(hv2v.size() % element_degree(family, high_dim, VERT) == 0);
   auto const uv2v = form_uses(hv2v, family, high_dim, low_dim);
   auto const deg = element_degree(family, low_dim, VERT);
+  //{
+  //  fprintf(stderr, "callNum %d deg %d\n", callNum, deg);
+  //  std::string suffix = std::to_string(callNum) + ".bin";
+  //  std::ofstream ostrm2("find_unique_uv2v" + suffix, std::ios::binary);
+  //  binary::write_array(ostrm2,uv2v,false,false);
+  //} matches serial
+  callNum++;
   return find_unique_deg(deg, uv2v);
 }
 
