@@ -776,8 +776,8 @@ void write(filesystem::path const& filepath, Mesh* mesh) {
 void write_parallel(filesystem::path const& filename, Mesh& mesh) {
   const auto dim = mesh.dim();
   const auto nnodes = mesh.nverts();
-  const auto globals_v = mesh.globals(VERT);
-  const auto coords = mesh.coords();
+  const auto globals_v = HostRead<GO>(mesh.globals(VERT));
+  const auto coords = HostRead<Real>(mesh.coords());
   const auto gmsh_dims = 3;
 
   std::vector<std::size_t> node_tags(static_cast<size_t>(nnodes));
@@ -792,12 +792,12 @@ void write_parallel(filesystem::path const& filename, Mesh& mesh) {
     }
   }
 
-  auto ents2verts = mesh.ask_elem_verts();
+  auto ents2verts = HostRead<LO>(mesh.ask_elem_verts());
   const LO ndim_ents = mesh.nelems();
   std::vector<std::size_t> element_tags(static_cast<size_t>(ndim_ents));
   std::vector<std::size_t> ent_nodes(
       static_cast<size_t>((dim + 1) * ndim_ents));
-  const auto globals_e = mesh.globals(dim);
+  const auto globals_e = HostRead<GO>(mesh.globals(dim));
   for (LO local_index = 0; local_index < ndim_ents; ++local_index) {
     element_tags[static_cast<std::size_t>(local_index)] =
         static_cast<size_t>(globals_e[local_index]) + 1;
