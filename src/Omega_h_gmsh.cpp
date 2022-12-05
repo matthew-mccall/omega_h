@@ -554,12 +554,12 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
   }
 
   std::map<GO, LO> node_number_map;
-  Write<GO> vert_globals_w(nnodes);
+  HostWrite<GO> host_vert_globals(nnodes);
   for (LO local_index = 0; local_index < nnodes; ++local_index) {
     const auto global_index =
         static_cast<GO>(node_tags[static_cast<std::size_t>(local_index)]);
     node_number_map[global_index] = local_index;
-    vert_globals_w[local_index] = global_index;
+    host_vert_globals[local_index] = global_index;
   }
 
   std::array<std::vector<int>, 4> ent_class_ids;
@@ -646,7 +646,7 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
   // shift elements global identifiers so that they start at 0
   shift_container_values(ent_globals[max_dim]);
   // shift vertices global identifiers so that they start at 0
-  shift_container_values(vert_globals_w);
+  shift_container_values(host_vert_globals);
 
   HostWrite<Real> host_coords(nnodes * max_dim);
   for (LO local_index = 0; local_index < nnodes; ++local_index) {
@@ -657,7 +657,7 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
   }
   for (Int ent_dim = max_dim; ent_dim >= 0; --ent_dim) {
     const auto ndim_ents = static_cast<LO>(ent_globals[ent_dim].size());
-    Write<GO> host_elem_globals(ndim_ents);
+    HostWrite<GO> host_elem_globals(ndim_ents);
     HostWrite<LO> host_class_id(ndim_ents);
     HostWrite<LO> host_ev2v(ent_nodes[ent_dim].size());
     if (ndim_ents > 0) {
@@ -684,13 +684,15 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
       mesh.set_parting(OMEGA_H_ELEM_BASED);
       mesh.set_family(family);
       mesh.set_dim(ent_dim);
-      build_verts_from_globals(&mesh, vert_globals_w);
+      Read<GO> vert_globals(host_vert_globals);
+      Read<GO> elem_globals(host_elem_globals);
+      build_verts_from_globals(&mesh, vert_globals);
       // build_ents_from_elems2verts(&mesh, eqv2v, vert_globals, elem_globals);
       for (Int mdim = 1; mdim < ent_dim; ++mdim) {
         auto mv2v = find_unique(eqv2v, mesh.family(), ent_dim, mdim);
-        add_ents2verts(&mesh, mdim, mv2v, vert_globals_w, GOs());
+        add_ents2verts(&mesh, mdim, mv2v, vert_globals, GOs());
       }
-      add_ents2verts(&mesh, ent_dim, eqv2v, vert_globals_w, host_elem_globals);
+      add_ents2verts(&mesh, ent_dim, eqv2v, vert_globals, elem_globals);
       // if (!comm->reduce_and(is_sorted(vert_globals))) {
       //  reorder_by_globals(&mesh);
       //}
