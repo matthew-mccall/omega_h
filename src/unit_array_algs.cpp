@@ -109,12 +109,29 @@ static void test_scan() {
     std::ifstream stream("marks.bin", std::ios::binary);
     Read<I8> marks;
     binary::read_array(stream, marks, false, false);
+    Write<LO> loMarks_w(marks.size());
+    auto setLos = OMEGA_H_LAMBDA(LO i) {
+      loMarks_w[i] = marks[i];
+    };
+    parallel_for(marks.size(), std::move(setLos));
+    LOs loMarks(loMarks_w);
+    std::ifstream stream2("expectedOffsets.bin", std::ios::binary);
+    Read<LO> expectedOffsets;
+    binary::read_array(stream2, expectedOffsets, false, false);
+    auto offsets = offset_scan(loMarks);
+    OMEGA_H_CHECK(offsets == expectedOffsets);
+  }
+  {
+    std::ifstream stream("marks.bin", std::ios::binary);
+    Read<I8> marks;
+    binary::read_array(stream, marks, false, false);
     std::ifstream stream2("expectedOffsets.bin", std::ios::binary);
     Read<LO> expectedOffsets;
     binary::read_array(stream2, expectedOffsets, false, false);
     auto offsets = offset_scan(marks);
     OMEGA_H_CHECK(offsets == expectedOffsets);
   }
+
   {
     LOs scannedByte = offset_scan(Read<I8>(3, 1));
     LOs scannedLo = offset_scan(LOs(3, 1));
