@@ -271,8 +271,7 @@ static void test_intersect_metrics() {
 static void test_interpolate_metrics() {
   auto mi22 = identity_matrix<2,2>();
   auto v2 = vector_2(1.0 / 100.0, 1.0);
-  auto metric = compose_metric(mi22, v2);
-  auto a = repeat_symm(4, metric);
+  auto a = repeat_symm(4, compose_metric(mi22, v2));
   auto b = repeat_symm(
       4, compose_metric(identity_matrix<2, 2>(), vector_2(1.0, 1.0)));
   auto c = interpolate_between_metrics(4, a, b, 0.0);
