@@ -276,16 +276,6 @@ static void test_interpolate_metrics() {
   auto b = repeat_symm(
       4, compose_metric(identity_matrix<2, 2>(), vector_2(1.0, 1.0)));
   auto c = interpolate_between_metrics(4, a, b, 0.0);
-  {
-    HostRead<Real> a_h(a);
-    HostRead<Real> b_h(b);
-    HostRead<Real> c_h(c);
-    OMEGA_H_CHECK(a_h.size() == c_h.size());
-    for(int i=0; i<a_h.size(); i++) {
-      fprintf(stderr, "i a[i] b[i] c[i] %d %0.2f %0.2f %0.2f\n", i, a_h[i], b_h[i], c_h[i]);
-      OMEGA_H_CHECK(are_close(a_h[i],c_h[i]));
-    }
-  }
   OMEGA_H_CHECK(are_close(a, c));
   //c = interpolate_between_metrics(4, a, b, 1.0);
   //OMEGA_H_CHECK(are_close(b, c));
