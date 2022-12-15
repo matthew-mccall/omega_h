@@ -270,21 +270,8 @@ static void test_intersect_metrics() {
 
 static void test_interpolate_metrics() {
   auto mi22 = identity_matrix<2,2>();
-  for(int i=0; i<2; i++) {
-    for(int j=0; j<2; j++) {
-      fprintf(stderr, "mi22[%d][%d] %0.2f\n", j, i, mi22[j][i]);
-    }
-  }
   auto v2 = vector_2(1.0 / 100.0, 1.0);
-  for(int i=0; i<v2.size(); i++) {
-    fprintf(stderr, "i v2[i] %d %0.2f\n", i, v2[i]);
-  }
   auto metric = compose_metric(mi22, v2);
-  for(int i=0; i<2; i++) {
-    for(int j=0; j<2; j++) {
-      fprintf(stderr, "metric[%d][%d] %0.2f\n", j, i, metric[j][i]);
-    }
-  }
   auto a = repeat_symm(4, metric);
   auto b = repeat_symm(
       4, compose_metric(identity_matrix<2, 2>(), vector_2(1.0, 1.0)));
