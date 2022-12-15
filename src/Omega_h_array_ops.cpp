@@ -147,7 +147,11 @@ bool are_close(Reals a, Reals b, Real tol, Real floor) {
   auto transform = OMEGA_H_LAMBDA(LO i)->bool {
     const auto res = are_close(a[i], b[i], tol, floor);
     if(!res) {
+#if defined(OMEGA_H_USE_SYCL)
       KOKKOS_IMPL_DO_NOT_USE_PRINTF("notClose i a b %d %f %f\n", i, a[i], b[i]);
+#else
+      printf("notClose i a b %d %f %f\n", i, a[i], b[i]);
+#endif
     }
     return res;
   };
