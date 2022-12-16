@@ -14,8 +14,6 @@ int main(int argc, char** argv) {
         4, compose_metric(identity_matrix<2, 2>(), vector_2(1.0, 1.0)));
     auto c = interpolate_between_metrics(4, a, b, 0.0);
     OMEGA_H_CHECK(are_close(a, c));
-    c = interpolate_between_metrics(4, a, b, 1.0);
-    OMEGA_H_CHECK(are_close(b, c));
   }
   return 0;
 }
