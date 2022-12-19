@@ -2,6 +2,7 @@ module esmfWrapper
   use ESMF
   implicit none
   type(ESMF_Mesh) :: esmfMesh
+  logical :: esmfMeshCreated
 end module esmfWrapper
 
 subroutine esmfInit() bind(C, name='esmfInit')
@@ -31,6 +32,8 @@ subroutine esmfGetMeshVtxCoords(cNodeCoords) bind(C, name='esmfGetMeshVtxCoords'
   real(c_double), pointer :: fNodeCoords(:)
   integer :: nodeCount, spatialDim, localrc
 
+  if(esmfMeshCreated .eqv. .false.) return
+
   call ESMF_MeshGet(esmfMesh, nodeCount=nodeCount, spatialDim=spatialDim, rc=localrc)
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
   call c_f_pointer(cNodeCoords,fNodeCoords,[nodeCount*spatialDim])
@@ -48,6 +51,8 @@ subroutine esmfGetMeshElemVerts(cElemVerts) bind(C, name='esmfGetMeshElemVerts')
   integer :: elemCount, localrc
   integer, allocatable :: elemTypes(:)
   logical :: allTriElems
+
+  if(esmfMeshCreated .eqv. .false.) return
 
   call ESMF_MeshGet(esmfMesh, elementCount=elemCount, rc=localrc)
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
@@ -143,6 +148,7 @@ subroutine esmfTestMesh() bind(C, name='esmfTestMesh')
          elementTypes=elemTypes, elementConn=elemConn, &
          rc=localrc)
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  esmfMeshCreated=.true.
 
   ! After the creation we are through with the arrays, so they may be
   ! deallocated.
@@ -159,9 +165,15 @@ end subroutine
 subroutine esmfFinalize() bind(C, name='esmfFinalize')
   use iso_c_binding
   use ESMF
+  use esmfWrapper
   implicit none
   integer :: rc
   write(*,*) 'Fortran esmfFinalize'
+  if(esmfMeshCreated .eqv. .true.) then
+    ! Get rid of Mesh
+    call ESMF_MeshDestroy(esmfMesh, rc=rc)
+    if (rc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  end if
   call ESMF_Finalize(endflag=ESMF_END_KEEPMPI,rc=rc) !don't finalize mpi
   write(*,*) 'Fortran esmfFinalize done'
 end
