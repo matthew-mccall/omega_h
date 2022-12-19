@@ -26,10 +26,12 @@ end
 !       Element Id labels in centers
 !       (Everything owned by PET 0)
 
-subroutine esmfTestMeshGet() bind(C, name='esmfTestMeshGet')
+subroutine esmfTestMeshGet(cNodeCoords) bind(C, name='esmfTestMeshGet')
   use iso_c_binding
   use ESMF
   implicit none
+  type(c_ptr), value :: cNodeCoords
+  real(c_double), pointer :: fNodeCoords(:)
   integer :: rc, localrc
   integer :: numNodes, numTriElems
   integer, allocatable :: nodeIds(:)
@@ -95,6 +97,16 @@ subroutine esmfTestMeshGet() bind(C, name='esmfTestMeshGet')
          nodeOwners=nodeOwners, elementIds=elemIds,&
          elementTypes=elemTypes, elementConn=elemConn, &
          rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  call c_f_pointer(cNodeCoords,fNodeCoords,[8])
+
+  call ESMF_MeshGet(mesh, &
+    nodeIds=nodeIds, &
+    nodeCoords=fNodeCoords, &
+    elementConn=elemConn, &
+    rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
 
   ! After the creation we are through with the arrays, so they may be
   ! deallocated.
@@ -104,6 +116,7 @@ subroutine esmfTestMeshGet() bind(C, name='esmfTestMeshGet')
   deallocate(elemIds)
   deallocate(elemTypes)
   deallocate(elemConn)
+
   write(*,*) 'Fortran done esmfTestMeshGet'
 end subroutine
 
