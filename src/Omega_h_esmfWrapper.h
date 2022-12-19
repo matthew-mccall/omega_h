@@ -4,4 +4,5 @@ extern "C" void esmfInit();
 extern "C" void esmfFinalize();
 extern "C" void esmfTestMesh();
 extern "C" void esmfGetMeshVtxCoords(double* coords);
+extern "C" void esmfGetMeshElemVerts(int* elemVerts);
 #endif

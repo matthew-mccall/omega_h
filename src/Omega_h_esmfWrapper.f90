@@ -38,6 +38,30 @@ subroutine esmfGetMeshVtxCoords(cNodeCoords) bind(C, name='esmfGetMeshVtxCoords'
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
 end subroutine
 
+subroutine esmfGetMeshElemVerts(cElemVerts) bind(C, name='esmfGetMeshElemVerts')
+  use iso_c_binding
+  use ESMF
+  use esmfWrapper
+  implicit none
+  type(c_ptr), value :: cElemVerts
+  integer(c_int), pointer :: fElemVerts(:)
+  integer :: elemCount, localrc
+  integer, allocatable :: elemTypes(:)
+  logical :: allTriElems
+
+  call ESMF_MeshGet(esmfMesh, elementCount=elemCount, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  allocate(elemTypes(elemCount))
+  call ESMF_MeshGet(esmfMesh, elementTypes=elemTypes, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  allTriElems = all(elemTypes == ESMF_MESHELEMTYPE_TRI)
+  if (allTriElems .neqv. .true.) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  call c_f_pointer(cElemVerts,fElemVerts,[elemCount*3])
+  call ESMF_MeshGet(esmfMesh, elementConn=fElemVerts, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+end subroutine
+
+
 
 !  1.0   4 ------- 3
 !        |  \   2  |
