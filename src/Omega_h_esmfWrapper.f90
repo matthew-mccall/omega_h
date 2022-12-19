@@ -23,6 +23,25 @@ subroutine esmfInit() bind(C, name='esmfInit')
   write(*,*) 'Fortran fooF done'
 end
 
+subroutine esmfGetMeshVtxIds(cNodeIds) bind(C, name='esmfGetMeshVtxIds')
+  use iso_c_binding
+  use ESMF
+  use esmfWrapper
+  implicit none
+  type(c_ptr), value :: cNodeIds
+  integer(c_int), pointer :: fNodeIds(:) !TODO long int
+  integer :: nodeCount, localrc
+
+  if(esmfMeshCreated .eqv. .false.) return
+
+  call ESMF_MeshGet(esmfMesh, nodeCount=nodeCount, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  call c_f_pointer(cNodeIds,fNodeIds,[nodeCount])
+  call ESMF_MeshGet(esmfMesh, nodeIds=fNodeIds, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+end subroutine
+
+
 subroutine esmfGetMeshVtxCoords(cNodeCoords) bind(C, name='esmfGetMeshVtxCoords')
   use iso_c_binding
   use ESMF
