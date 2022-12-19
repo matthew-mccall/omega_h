@@ -215,6 +215,26 @@ if(Omega_h_USE_SimModSuite)
   target_link_libraries(omega_h PUBLIC "${SIMMODSUITE_LIBS}")
 endif()
 
+if(Omega_h_USE_ESMF)
+  message(STATUS "Omega_h_USE_ESMF: ${Omega_h_USE_ESMF}")
+  add_library(omega_h_esmfWrapFtn Omega_h_esmfWrapper.f90)
+  set(OLD_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH "${ESMF_ROOT}/cmake")
+  message(STATUS "CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}")
+  find_package(ESMF MODULE REQUIRED)
+  set(CMAKE_MODULE_PATH ${OLD_CMAKE_MODULE_PATH})
+  if(NOT ESMF_FOUND)
+    message(FATAL_ERROR "ESMF not found. Set ESMFMKFILE to the path of esmf.mk.")
+  endif()
+  #HACK - the esmf config doesn't know the path to xerces...  {
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(xerces-c REQUIRED IMPORTED_TARGET xerces-c>=3.2.3)
+  get_property(xercesLib TARGET PkgConfig::xerces-c PROPERTY INTERFACE_LINK_LIBRARIES)
+  cmake_path(GET xercesLib PARENT_PATH xercesLibDir)
+  target_link_directories(omega_h_esmfWrapFtn PUBLIC ${xercesLibDir})
+  # }
+  target_link_libraries(omega_h_esmfWrapFtn PUBLIC ESMF)
+endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
 

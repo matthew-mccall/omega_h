@@ -29,12 +29,19 @@ bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
 bob_option(Omega_h_USE_CUDA_AWARE_MPI "Assume MPI is CUDA-aware, make use of that" OFF)
 bob_option(Omega_h_USE_SimModSuite "Enable reading Simmetrix MeshSim meshes" OFF)
+bob_option(Omega_h_USE_ESMF "Enable reading ESMF meshes" OFF)
 bob_input(Omega_h_VALGRIND "" STRING "Valgrind plus arguments for testing")
 bob_option(Omega_h_EXAMPLES "Compile examples" OFF)
 
 bob_option(Omega_h_USE_MPI "Use MPI for parallelism" OFF)
 bob_option(Omega_h_ENABLE_DEMANGLED_STACKTRACE "Add linker options to enable human-readable stacktraces on gnu-c platforms." OFF)
 bob_option(Omega_h_DBG "Enable debug prints, stacktraces, etc." OFF)
+
+if (Omega_h_USE_ESMF)
+  # we need to call ESMF fortran functions
+  enable_language(C Fortran)
+endif()
+
 
 if (Omega_h_ENABLE_DEMANGLED_STACKTRACE)
   message(STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}")
