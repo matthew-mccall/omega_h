@@ -1,11 +1,8 @@
 #include <Omega_h_library.hpp>
+#include <Omega_h_esmfWrapper.h>
 #include <sstream>
 #include <iostream>
 
-extern "C" void esmfInit();
-extern "C" void esmfFinalize();
-extern "C" void esmfTestMesh();
-extern "C" void esmfGetMeshVtxCoords(double* coords);
 
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
