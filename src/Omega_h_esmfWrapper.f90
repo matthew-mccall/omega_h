@@ -10,15 +10,10 @@ subroutine esmfInit() bind(C, name='esmfInit')
   use ESMF
   implicit none
   type(ESMF_VM) :: vm
-  integer :: finalrc, rc, result
-  integer :: localPet, petCount
+  integer :: rc
 
   write(*,*) 'Fortran fooF'
-  finalrc = ESMF_SUCCESS
-  call  ESMF_Initialize(vm=vm, defaultlogfilename="fooFortran.Log", &
-                    logkindflag=ESMF_LOGKIND_MULTI, rc=rc)
-
-  call ESMF_VMGet(vm, localPet=localPet, petCount=petCount, rc=rc)
+  call  ESMF_Initialize(logkindflag=ESMF_LOGKIND_NONE, rc=rc)
   if (rc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
   write(*,*) 'Fortran fooF done'
 end
