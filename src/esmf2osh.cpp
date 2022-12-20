@@ -1,6 +1,7 @@
 #include <Omega_h_library.hpp>
 #include <Omega_h_esmfWrapper.h>
 #include <Omega_h_build.hpp>
+#include <Omega_h_file.hpp>
 #include <sstream>
 #include <iostream>
 
@@ -54,6 +55,7 @@ int main(int argc, char** argv) {
   auto mesh = Omega_h::Mesh(&lib);
   Omega_h::build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, 2,
       elemVerts_dr, vtxCoords_dr);
+  Omega_h::binary::write("twoTri.osh", &mesh);
 
   delete [] coords;
   delete [] elemVerts;
