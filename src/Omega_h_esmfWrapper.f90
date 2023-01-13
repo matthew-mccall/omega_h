@@ -80,7 +80,31 @@ subroutine esmfGetMeshElemVerts(cElemVerts) bind(C, name='esmfGetMeshElemVerts')
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
 end subroutine
 
-
+subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
+  use iso_c_binding
+  use ESMF
+  use esmfWrapper
+  implicit none
+  integer(c_int), intent(in), value :: clen
+  character(c_char), intent(in) :: cstring(clen)
+  character(len=clen) :: fstring
+  type(ESMF_FileFormat_Flag) :: fileType
+  integer :: localrc,j
+  !copy the string
+  !https://www.reddit.com/r/fortran/comments/c5wb6o/passing_strings_from_c_to_fortran_using_iso_c/
+  fstring = ''
+  do j = 1, clen
+    if (cstring(j) == c_null_char) exit
+    fstring(j:j) = cstring(j)
+  end do
+  fileType = ESMF_FILEFORMAT_SCRIP
+  ! from /space/cwsmith/landice/esmf/src/Superstructure/PreESMFMod/src/ESMF_RegridWeightGen.F90
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  esmfMesh = ESMF_MeshCreate(fstring, fileType, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  esmfMeshCreated=.true.
+  write(*,*) 'Fortran done esmfLoadMesh'
+end subroutine
 
 !  1.0   4 ------- 3
 !        |  \   2  |
