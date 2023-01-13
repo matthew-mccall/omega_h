@@ -5,9 +5,17 @@
 #include <sstream>
 #include <iostream>
 
+void testLoadMesh(Omega_h::Library& lib, std::string meshFileName) {
+  auto comm = lib.world();
+  esmfInit();
+  esmfLoadMesh(meshFileName.c_str(), meshFileName.length());
+  int dim, numVerts, numElms;
+  esmfGetMeshInfo(&dim, &numVerts, &numElms);
+  std::cout << dim << " " << numVerts << " " << numElms << "\n";
+  esmfFinalize();
+}
 
-int main(int argc, char** argv) {
-  auto lib = Omega_h::Library(&argc, &argv);
+void testTwoTri(Omega_h::Library& lib) {
   auto comm = lib.world();
   auto coords = new double[8];
   auto elemVerts = new int[6];
@@ -61,5 +69,11 @@ int main(int argc, char** argv) {
   delete [] elemVerts;
   delete [] vtxIds;
   esmfFinalize();
+}
+
+int main(int argc, char** argv) {
+  auto lib = Omega_h::Library(&argc, &argv);
+  testTwoTri(lib);
+  testLoadMesh(lib, "/space/cwsmith/landice/esmf/src/Infrastructure/Mesh/tests/data/test_sph_3x3_scrip.nc");
   return 0;
 }
