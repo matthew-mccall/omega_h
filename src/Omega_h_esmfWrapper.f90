@@ -80,6 +80,20 @@ subroutine esmfGetMeshElemVerts(cElemVerts) bind(C, name='esmfGetMeshElemVerts')
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
 end subroutine
 
+subroutine esmfGetMeshInfo(spatialDim,numVerts,numElms) bind(C, name='esmfGetMeshInfo')
+  use iso_c_binding
+  use ESMF
+  use esmfWrapper
+  implicit none
+  integer(c_int), intent(inout) :: spatialDim ! does not work
+  integer(c_int), intent(inout) :: numVerts
+  integer(c_int), intent(inout) :: numElms
+  integer :: localrc
+  if(esmfMeshCreated .eqv. .false.) return
+  call ESMF_MeshGet(esmfMesh, elementCount=numElms, nodeCount=numVerts, spatialDim=spatialDim, rc=localrc)
+  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+end subroutine
+
 subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
   use iso_c_binding
   use ESMF
