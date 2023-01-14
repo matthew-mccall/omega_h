@@ -12,10 +12,8 @@ subroutine esmfInit() bind(C, name='esmfInit')
   type(ESMF_VM) :: vm
   integer :: rc
 
-  write(*,*) 'Fortran fooF'
   call  ESMF_Initialize(logkindflag=ESMF_LOGKIND_NONE, rc=rc)
   if (rc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  write(*,*) 'Fortran fooF done'
 end
 
 subroutine esmfGetMeshVtxIds(cNodeIds) bind(C, name='esmfGetMeshVtxIds')
@@ -219,7 +217,6 @@ subroutine esmfFinalize() bind(C, name='esmfFinalize')
   use esmfWrapper
   implicit none
   integer :: rc
-  write(*,*) 'Fortran esmfFinalize'
   if(esmfMeshCreated .eqv. .true.) then
     ! Get rid of Mesh
     call ESMF_MeshDestroy(esmfMesh, rc=rc)
