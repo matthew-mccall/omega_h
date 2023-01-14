@@ -115,8 +115,6 @@ subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
   ! from /space/cwsmith/landice/esmf/src/Superstructure/PreESMFMod/src/ESMF_RegridWeightGen.F90
   esmfMesh = ESMF_MeshCreate(fstring, fileformat=fileType, rc=localrc)
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  call ESMF_MeshGet(esmfMesh, nodeCount=nodeCount, rc=localrc)
-  if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
   esmfMeshCreated=.true.
   write(*,*) 'Fortran done esmfLoadMesh'
 end subroutine
