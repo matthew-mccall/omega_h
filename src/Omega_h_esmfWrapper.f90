@@ -12,7 +12,9 @@ subroutine esmfInit() bind(C, name='esmfInit')
   type(ESMF_VM) :: vm
   integer :: rc
 
-  call  ESMF_Initialize(logkindflag=ESMF_LOGKIND_NONE, rc=rc)
+  call  ESMF_Initialize(logkindflag=ESMF_LOGKIND_MULTI, rc=rc)
+  if (rc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  call ESMF_LogSet(logmsgAbort=(/ESMF_LOGMSG_ERROR/), rc=rc)
   if (rc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
 end
 
