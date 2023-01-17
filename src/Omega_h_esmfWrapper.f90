@@ -112,6 +112,7 @@ subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
     fstring(j:j) = cstring(j)
   end do
   fileType = ESMF_FILEFORMAT_SCRIP
+  write(*,*) 'Fortran opening ', fstring
   ! from /space/cwsmith/landice/esmf/src/Superstructure/PreESMFMod/src/ESMF_RegridWeightGen.F90
   esmfMesh = ESMF_MeshCreate(fstring, fileformat=fileType, rc=localrc)
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
