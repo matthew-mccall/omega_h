@@ -94,7 +94,7 @@ subroutine esmfGetMeshInfo(spatialDim,numVerts,numElms) bind(C, name='esmfGetMes
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
 end subroutine
 
-subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
+subroutine esmfLoadMesh(cstring,clen,fileType) bind(C, name='esmfLoadMesh')
   use iso_c_binding
   use ESMF
   use esmfWrapper
@@ -102,8 +102,9 @@ subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
   integer(c_int), intent(in), value :: clen
   character(c_char), intent(in) :: cstring(clen)
   character(len=clen) :: fstring
-  type(ESMF_FileFormat_Flag) :: fileType
-  integer :: localrc,j
+  integer(c_int), intent(in), value :: fileType
+  type(ESMF_FileFormat_Flag) :: esmfFileType
+  integer :: localrc,j,test
   !copy the string
   !https://www.reddit.com/r/fortran/comments/c5wb6o/passing_strings_from_c_to_fortran_using_iso_c/
   fstring = ''
@@ -111,10 +112,14 @@ subroutine esmfLoadMesh(cstring,clen) bind(C, name='esmfLoadMesh')
     if (cstring(j) == c_null_char) exit
     fstring(j:j) = cstring(j)
   end do
-  fileType = ESMF_FILEFORMAT_SCRIP
+  !set the filetype
+  esmfFileType%fileformat = fileType
+  if(esmfFileType .ne. ESMF_FILEFORMAT_SCRIP .and. &
+     esmfFileType .ne. ESMF_FILEFORMAT_ESMFMESH .and. &
+     esmfFileType .ne. ESMF_FILEFORMAT_UGRID) call ESMF_Finalize(endflag=ESMF_END_ABORT)
   write(*,*) 'Fortran opening ', fstring
   ! from /space/cwsmith/landice/esmf/src/Superstructure/PreESMFMod/src/ESMF_RegridWeightGen.F90
-  esmfMesh = ESMF_MeshCreate(fstring, fileformat=fileType, rc=localrc)
+  esmfMesh = ESMF_MeshCreate(fstring, fileformat=esmfFileType, rc=localrc)
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
   esmfMeshCreated=.true.
   write(*,*) 'Fortran done esmfLoadMesh'
