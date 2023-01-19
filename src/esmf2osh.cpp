@@ -3,8 +3,11 @@
 #include <Omega_h_cmdline.hpp>
 #include <Omega_h_build.hpp>
 #include <Omega_h_file.hpp>
+#include <Omega_h_for.hpp>
 #include <sstream>
 #include <iostream>
+
+namespace oh = Omega_h;
 
 int fileTypeStringToInt(std::string fileType) {
   assert(fileType == "scrip" || fileType == "esmf" || fileType == "ugrid");
@@ -38,6 +41,32 @@ int main(int argc, char** argv) {
   esmfGetMeshInfo(&dim, &numVerts, &numElms);
   std::cout << "dim, numVerts, numElms: "
             << dim << ", " << numVerts << ", " << numElms << "\n";
+
+  oh::HostWrite<oh::Real> coords(numVerts*dim);
+  oh::HostWrite<oh::LO> vtxIdsEsmf(numVerts);
+  oh::HostWrite<oh::LO> elemVertsEsmf(numElms*3);
+  esmfGetMeshVtxCoords(coords.data());
+  esmfGetMeshVtxIds(vtxIdsEsmf.data());
+  esmfGetMeshElemVerts(elemVertsEsmf.data());
+
+  //create element-to-vtx device array
+  //the esmf 'elemVerts' array contains indices into the array of vertex ids
+  //the esmf vertex ids start at one instead of zero
+  auto coords_d = oh::read(coords.write());
+  auto vtxIdsEsmf_d = oh::read(vtxIdsEsmf.write());
+  auto elemVertsEsmf_d = oh::read(elemVertsEsmf.write());
+
+  oh::Write<oh::LO> elemVertsOh_d(numElms*3);
+  auto setConnectivity = OMEGA_H_LAMBDA(oh::LO i) {
+    elemVertsOh_d[i] = vtxIdsEsmf_d[elemVertsEsmf_d[i]-1] - 1;
+  };
+  oh::parallel_for(elemVertsOh_d.size(), setConnectivity);
+
+  //auto mesh = oh::Mesh(&lib);
+  //oh::build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, 2,
+  //    elemVerts_dr, vtxCoords_dr);
+  //oh::binary::write("twoTri.osh", &mesh);
+
   esmfFinalize();
   return 0;
 }
