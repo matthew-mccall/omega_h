@@ -36,7 +36,8 @@ int main(int argc, char** argv) {
   esmfLoadMesh(inpath.c_str(), inpath.length(), fileType);
   int dim, numVerts, numElms;
   esmfGetMeshInfo(&dim, &numVerts, &numElms);
-  std::cout << dim << " " << numVerts << " " << numElms << "\n";
+  std::cout << "dim, numVerts, numElms: "
+            << dim << ", " << numVerts << ", " << numElms << "\n";
   esmfFinalize();
   return 0;
 }
