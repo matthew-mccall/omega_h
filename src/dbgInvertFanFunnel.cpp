@@ -5,16 +5,20 @@
 
 using namespace Omega_h;
 
-static void test_fan_and_funnel() {
-  OMEGA_H_CHECK(invert_fan(LOs({0, 2, 4, 6})) == LOs({0, 0, 1, 1, 2, 2}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 2, 4, 6})) == LOs({0, 0, 1, 1, 2, 2}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 2, 4, 6})) == LOs({0, 0, 1, 1, 2, 2}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 2, 4, 6})) == LOs({0, 0, 1, 1, 2, 2}));
+static void testFan() {
+  const auto a = invert_fan(LOs({0, 2, 4, 6}));
+  OMEGA_H_CHECK(a == LOs({0, 0, 1, 1, 2, 2}));
+  const auto b = invert_fan(LOs({0, 2, 4, 6}));
+  OMEGA_H_CHECK(b == LOs({0, 0, 1, 1, 2, 2}));
+  const auto c = invert_fan(LOs({0, 2, 4, 6}));
+  OMEGA_H_CHECK(c == LOs({0, 0, 1, 1, 2, 2}));
+  const auto d = invert_fan(LOs({0, 2, 4, 6})); //sometimes hangs here
+  OMEGA_H_CHECK(d == LOs({0, 0, 1, 1, 2, 2}));
 }
 
 int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   OMEGA_H_CHECK(std::string(lib.version()) == OMEGA_H_SEMVER);
-  test_fan_and_funnel();
+  testFan();
   return 0;
 }
