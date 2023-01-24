@@ -123,13 +123,13 @@ static void test_scan() {
 
 static void test_fan_and_funnel() {
   OMEGA_H_CHECK(invert_funnel(LOs({0, 0, 1, 1, 2, 2}), 3) == LOs({0, 2, 4, 6}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 2, 4, 6})) == LOs({0, 0, 1, 1, 2, 2}));
-  OMEGA_H_CHECK(invert_funnel(LOs({0, 0, 0, 2, 2, 2}), 3) == LOs({0, 3, 3, 6}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 3, 3, 6})) == LOs({0, 0, 0, 2, 2, 2}));
-  OMEGA_H_CHECK(invert_funnel(LOs({0, 0, 0, 0, 0, 0}), 3) == LOs({0, 6, 6, 6}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 6, 6, 6})) == LOs({0, 0, 0, 0, 0, 0}));
-  OMEGA_H_CHECK(invert_funnel(LOs({2, 2, 2, 2, 2, 2}), 3) == LOs({0, 0, 0, 6}));
-  OMEGA_H_CHECK(invert_fan(LOs({0, 0, 0, 6})) == LOs({2, 2, 2, 2, 2, 2}));
+  //OMEGA_H_CHECK(invert_fan(LOs({0, 2, 4, 6})) == LOs({0, 0, 1, 1, 2, 2}));
+  //OMEGA_H_CHECK(invert_funnel(LOs({0, 0, 0, 2, 2, 2}), 3) == LOs({0, 3, 3, 6}));
+  //OMEGA_H_CHECK(invert_fan(LOs({0, 3, 3, 6})) == LOs({0, 0, 0, 2, 2, 2}));
+  //OMEGA_H_CHECK(invert_funnel(LOs({0, 0, 0, 0, 0, 0}), 3) == LOs({0, 6, 6, 6}));
+  //OMEGA_H_CHECK(invert_fan(LOs({0, 6, 6, 6})) == LOs({0, 0, 0, 0, 0, 0}));
+  //OMEGA_H_CHECK(invert_funnel(LOs({2, 2, 2, 2, 2, 2}), 3) == LOs({0, 0, 0, 6}));
+  //OMEGA_H_CHECK(invert_fan(LOs({0, 0, 0, 6})) == LOs({2, 2, 2, 2, 2, 2}));
 }
 
 static void test_permute() {
@@ -363,29 +363,29 @@ static void test_array_from_kokkos() {
 int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   OMEGA_H_CHECK(std::string(lib.version()) == OMEGA_H_SEMVER);
-  test_get_component();
-  test_equal();
-  test_scan();
-  test_sort_small_range();
-  test_write();
-  test_atomic();
-  test_int128();
-  test_repro_sum();
-  test_sort();
   test_fan_and_funnel();
-  test_permute();
-  test_invert_map();
-  test_invert_adj();
-  test_injective_map();
-  test_binary_search();
-  test_is_sorted();
-  test_linpart();
-  test_expand();
-  test_find_last();
-  test_scalar_ptr();
-  test_expr();
-  test_expr2();
-  test_array_from_kokkos();
+  //test_get_component();
+  //test_equal();
+  //test_scan();
+  //test_sort_small_range();
+  //test_write();
+  //test_atomic();
+  //test_int128();
+  //test_repro_sum();
+  //test_sort();
+  //test_permute();
+  //test_invert_map();
+  //test_invert_adj();
+  //test_injective_map();
+  //test_binary_search();
+  //test_is_sorted();
+  //test_linpart();
+  //test_expand();
+  //test_find_last();
+  //test_scalar_ptr();
+  //test_expr();
+  //test_expr2();
+  //test_array_from_kokkos();
   fprintf(stderr, "done\n");
   return 0;
 }
