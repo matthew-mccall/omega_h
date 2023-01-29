@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
   auto comm = lib.world();
   Omega_h::CmdLine cmdline;
   cmdline.add_arg<std::string>("input.osh");
-  cmdline.add_arg<std::string>("output.exo");
+  cmdline.add_arg<std::string>("output.osh");
   auto& fileTypeFlag = cmdline.add_flag("--in-mesh-type", "scrip|esmf|ugrid");
   fileTypeFlag.add_arg<std::string>("type");
   if (!cmdline.parse(comm, &argc, argv) ||
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     return -1;
   }
   auto inpath = cmdline.get<std::string>("input.osh");
-  auto outpath = cmdline.get<std::string>("output.exo");
+  auto outpath = cmdline.get<std::string>("output.osh");
   auto fileTypeString = cmdline.get<std::string>("--in-mesh-type", "type");
   auto fileType = fileTypeStringToInt(fileTypeString);
   esmfInit();
@@ -62,10 +62,10 @@ int main(int argc, char** argv) {
   };
   oh::parallel_for(elemVertsOh_d.size(), setConnectivity);
 
-  //auto mesh = oh::Mesh(&lib);
-  //oh::build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, 2,
-  //    elemVerts_dr, vtxCoords_dr);
-  //oh::binary::write("twoTri.osh", &mesh);
+  auto mesh = oh::Mesh(&lib);
+  oh::build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, 2,
+      elemVertsOh_d, coords_d);
+  oh::binary::write(outpath, &mesh);
 
   esmfFinalize();
   return 0;
