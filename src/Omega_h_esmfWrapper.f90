@@ -123,6 +123,7 @@ subroutine esmfLoadMesh(cstring,clen,fileType) bind(C, name='esmfLoadMesh')
   if (localrc /= ESMF_SUCCESS) call ESMF_Finalize(endflag=ESMF_END_ABORT)
   esmfMeshCreated=.true.
   write(*,*) 'Fortran done esmfLoadMesh'
+  call ESMF_MeshWriteVTK(esmfMesh, "esmf")
 end subroutine
 
 !  1.0   4 ------- 3
