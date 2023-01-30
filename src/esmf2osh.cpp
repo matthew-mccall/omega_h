@@ -4,6 +4,7 @@
 #include <Omega_h_build.hpp>
 #include <Omega_h_file.hpp>
 #include <Omega_h_for.hpp>
+#include <Omega_h_array_ops.hpp>
 #include <sstream>
 #include <iostream>
 
@@ -49,16 +50,31 @@ int main(int argc, char** argv) {
   esmfGetMeshVtxIds(vtxIdsEsmf.data());
   esmfGetMeshElemVerts(elemVertsEsmf.data());
 
-  //create element-to-vtx device array
-  //the esmf 'elemVerts' array contains indices into the array of vertex ids
-  //the esmf vertex ids start at one instead of zero
   auto coords_d = oh::read(coords.write());
   auto vtxIdsEsmf_d = oh::read(vtxIdsEsmf.write());
   auto elemVertsEsmf_d = oh::read(elemVertsEsmf.write());
 
+  auto minVtxId = oh::get_min<oh::LO>(comm,vtxIdsEsmf_d);
+  auto maxVtxId = oh::get_max<oh::LO>(comm,vtxIdsEsmf_d);
+  auto minElemVertsId = oh::get_min<oh::LO>(comm,elemVertsEsmf_d);
+  auto maxElemVertsId = oh::get_max<oh::LO>(comm,elemVertsEsmf_d);
+
+  std::cout << "VtxId, elemVertsId: ("
+            << minVtxId << ", " << maxVtxId << "), ("
+            << minElemVertsId << ", " << maxElemVertsId << ")\n";
+  assert(minVtxId==0 || minVtxId==1);
+  assert(maxVtxId-minVtxId==numVerts-1);
+  assert(maxElemVertsId-minElemVertsId==numVerts-1);
+
+  const int indexOffset = (minVtxId==1)? 1 : 0;
+
+  //create element-to-vtx device array
+  //the esmf 'elemVerts' array contains indices into the array of vertex ids
+  //using 1-based indexing
   oh::Write<oh::LO> elemVertsOh_d(numElms*3);
   auto setConnectivity = OMEGA_H_LAMBDA(oh::LO i) {
-    elemVertsOh_d[i] = vtxIdsEsmf_d[elemVertsEsmf_d[i]-1] - 1;
+    elemVertsOh_d[i] = vtxIdsEsmf_d[elemVertsEsmf_d[i]-1] - indexOffset;
+    assert(elemVertsOh_d[i] >=0 && elemVertsOh_d[i] <= numVerts-1);
   };
   oh::parallel_for(elemVertsOh_d.size(), setConnectivity);
 
