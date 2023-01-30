@@ -440,6 +440,8 @@ void find_matches_deg(LOs const a2fv, Read<T> const av2v,
     auto const vb_begin = v2vb[fv];
     auto const vb_end = v2vb[fv + 1];
     bool found = false;
+    if(vb_end-vb_begin >10)
+      printf("a %d fv %d vb_begin vb_end diff %d %d %d\n", a, fv, vb_begin, vb_end, vb_end-vb_begin);
     for (LO vb = vb_begin; vb < vb_end; ++vb) {
       auto const b = vb2b[vb];
       auto const vb_code = vb_codes[vb];
@@ -448,6 +450,8 @@ void find_matches_deg(LOs const a2fv, Read<T> const av2v,
       I8 match_code;
       if (IsMatch<deg>::eval(
               av2v, a_begin, bv2v, b_begin, which_down, &match_code)) {
+        if(found)
+          printf("a %d !found\n", a);
         OMEGA_H_CHECK(!found); // there can't be more than one!
         a2b[a] = b;
         codes[a] = match_code;
