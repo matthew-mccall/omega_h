@@ -27,7 +27,7 @@ jobs:
     - name: Configure Kokkos
       if: ${{ matrix.kokkos == 'on' }}
       shell: bash
-      working-directory: ${{runner.workspace}}/omega_h/kokkos
+      working-directory: ${{github.workspace}}/kokkos
       run: cmake .
            -Bbuild
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
@@ -40,7 +40,7 @@ jobs:
 
     - name: Configure CMake
       shell: bash
-      working-directory: ${{runner.workspace}}/omega_h/omega_h
+      working-directory: ${{github.workspace}}/omega_h
       run: cmake .
            -Bbuild
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
@@ -53,11 +53,11 @@ jobs:
            -DBUILD_SHARED_LIBS=OFF
 
     - name: Build
-      working-directory: ${{runner.workspace}}/omega_h/omega_h/build
+      working-directory: ${{github.workspace}}/omega_h/build
       shell: bash
       run: cmake --build .
 
     - name: Test
-      working-directory: ${{runner.workspace}}/omega_h/omega_h/build
+      working-directory: ${{github.workspace}}/omega_h/build
       shell: bash
       run: ctest
