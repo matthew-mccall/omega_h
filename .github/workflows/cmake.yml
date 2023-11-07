@@ -50,6 +50,7 @@ jobs:
            -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
            -DBUILD_TESTING=ON
+           -DBUILD_SHARED_LIBS=OFF
 
     - name: Build
       working-directory: ${{runner.workspace}}/omega_h/omega_h/build
