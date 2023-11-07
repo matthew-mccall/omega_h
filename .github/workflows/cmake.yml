@@ -12,6 +12,10 @@ jobs:
       matrix:
         compiler: [g++, clang++]
         kokkos: [on, off]
+        mempool: [on, off]
+        exclude:
+        - kokkos: off
+          mempool: on
 
     steps:
     - uses: actions/checkout@v4
@@ -51,6 +55,7 @@ jobs:
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
            -DBUILD_TESTING=ON
            -DBUILD_SHARED_LIBS=OFF
+           -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
 
     - name: Build
       working-directory: ${{github.workspace}}/omega_h/build
