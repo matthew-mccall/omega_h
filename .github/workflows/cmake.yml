@@ -13,6 +13,7 @@ jobs:
         compiler: [g++, clang++]
         kokkos: [on, off]
         mempool: [on, off]
+        cuda: [on, off]
         exclude:
         - kokkos: off
           mempool: on
@@ -28,6 +29,13 @@ jobs:
         repository: kokkos/kokkos
         path: kokkos
 
+    - name: Install CUDA
+      if: ${{ matrix.cuda == 'on' }}
+      shell: bash
+      run: |
+        wget https://developer.download.nvidia.com/compute/cuda/12.3.1/local_installers/cuda_12.3.1_545.23.08_linux.run
+        sudo sh cuda_12.3.1_545.23.08_linux.run
+
     - name: Configure Kokkos
       if: ${{ matrix.kokkos == 'on' }}
       shell: bash
@@ -35,6 +43,7 @@ jobs:
       run: cmake .
            -Bbuild
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DKokkos_ENABLE_CUDA=${{ matrix.cuda }}
            -DCMAKE_INSTALL_PREFIX=build/install
 
     - name: Build Kokkos
@@ -50,7 +59,7 @@ jobs:
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_VERBOSE_MAKEFILE=on
            -DOmega_h_USE_MPI=off
-           -DOmega_h_USE_CUDA=off
+           -DOmega_h_USE_CUDA=${{ matrix.kokkos == 'off' && matrix.cuda || 'off' }}
            -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
            -DBUILD_TESTING=ON
@@ -63,6 +72,7 @@ jobs:
       run: cmake --build .
 
     - name: Test
+      if: ${{ matrix.cuda == 'off' }}
       working-directory: ${{github.workspace}}/omega_h/build
       shell: bash
       run: ctest
