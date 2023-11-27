@@ -31,7 +31,7 @@ jobs:
         path: kokkos
 
     - name: Install CMake
-      run: apt update && apt install -y cmake
+      run: apt update && apt install -y cmake clang
 
     - name: Configure Kokkos
       if: ${{ matrix.kokkos == 'on' }}
