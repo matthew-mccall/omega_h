@@ -30,8 +30,8 @@ jobs:
         repository: kokkos/kokkos
         path: kokkos
 
-    - name: Install CMake
-      run: apt update && apt install -y cmake clang
+    - name: Install CMake, Clang and ZLib
+      run: apt update && apt install -y cmake clang zlib1g-dev
 
     - name: Configure Kokkos
       if: ${{ matrix.kokkos == 'on' }}
