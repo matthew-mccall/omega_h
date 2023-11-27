@@ -30,6 +30,9 @@ jobs:
         repository: kokkos/kokkos
         path: kokkos
 
+    - name: Install CMake
+      run: sudo apt install -y cmake
+
     - name: Configure Kokkos
       if: ${{ matrix.kokkos == 'on' }}
       shell: bash
