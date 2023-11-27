@@ -17,6 +17,8 @@ jobs:
         exclude:
         - kokkos: off
           mempool: on
+        - compiler: g++
+          cuda: on
 
     steps:
     - uses: actions/checkout@v4
@@ -44,6 +46,7 @@ jobs:
            -Bbuild
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DKokkos_ENABLE_CUDA=${{ matrix.cuda }}
+           -DKokkos_ARCH_TURING75=${{ matrix.cuda }}
            -DCMAKE_INSTALL_PREFIX=build/install
 
     - name: Build Kokkos
