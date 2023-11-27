@@ -18,8 +18,6 @@ jobs:
         exclude:
         - kokkos: off
           mempool: on
-        - kokkos: off # Redundant
-          cuda: off
 
     steps:
     - uses: actions/checkout@v4
