@@ -1,4 +1,4 @@
-name: CMake test matrix
+name: CMake test matrix with CUDA
 on:
   push:
     branches: [ master ]
