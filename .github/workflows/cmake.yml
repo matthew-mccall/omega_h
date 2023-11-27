@@ -62,7 +62,8 @@ jobs:
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_VERBOSE_MAKEFILE=on
            -DOmega_h_USE_MPI=off
-           -DOmega_h_USE_CUDA=${{ matrix.kokkos == 'off' && matrix.cuda || 'off' }}
+           -DOmega_h_USE_CUDA=${{ matrix.cuda }}
+           -DOmega_h_CUDA_ARCH=75=${{ matrix.cuda }}
            -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
            -DBUILD_TESTING=ON
