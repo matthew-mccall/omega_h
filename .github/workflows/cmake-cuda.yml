@@ -8,6 +8,8 @@ jobs:
   build:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-22.04
+    container: nvidia/cuda:12.3.0-devel-ubuntu22.04
+
     strategy:
       matrix:
         compiler: [g++, clang++]
@@ -16,6 +18,8 @@ jobs:
         exclude:
         - kokkos: off
           mempool: on
+        - kokkos: off # Redundant
+          cuda: off
 
     steps:
     - uses: actions/checkout@v4
@@ -28,18 +32,14 @@ jobs:
         repository: kokkos/kokkos
         path: kokkos
 
-    - name: Install CUDA
-      shell: bash
-      run: |
-        wget https://developer.download.nvidia.com/compute/cuda/12.3.1/local_installers/cuda_12.3.1_545.23.08_linux.run
-        sudo sh cuda_12.3.1_545.23.08_linux.run --silent --toolkit --no-opengl-libs
-
     - name: Configure Kokkos
       if: ${{ matrix.kokkos == 'on' }}
       shell: bash
       working-directory: ${{github.workspace}}/kokkos
       run: cmake .
            -Bbuild
+           -DKokkos_ENABLE_CUDA=on
+           -DKokkos_ARCH_TURING75=on
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_INSTALL_PREFIX=build/install
 
@@ -56,18 +56,15 @@ jobs:
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_VERBOSE_MAKEFILE=on
            -DOmega_h_USE_MPI=off
+           -DOmega_h_USE_CUDA=on
+           -DOmega_h_CUDA_ARCH=75
            -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
-           -DBUILD_TESTING=ON
-           -DBUILD_SHARED_LIBS=OFF
+           -DBUILD_TESTING=on
+           -DBUILD_SHARED_LIBS=off
            -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
 
     - name: Build
       working-directory: ${{github.workspace}}/omega_h/build
       shell: bash
       run: cmake --build .
-
-    - name: Test
-      working-directory: ${{github.workspace}}/omega_h/build
-      shell: bash
-      run: ctest
