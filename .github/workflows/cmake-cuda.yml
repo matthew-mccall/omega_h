@@ -12,7 +12,6 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++, clang++]
         kokkos: [on, off]
         mempool: [on, off]
         exclude:
@@ -41,7 +40,6 @@ jobs:
            -Bbuild
            -DKokkos_ENABLE_CUDA=on
            -DKokkos_ARCH_TURING75=on
-           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_INSTALL_PREFIX=build/install
 
     - name: Build Kokkos
@@ -54,7 +52,6 @@ jobs:
       working-directory: ${{github.workspace}}/omega_h
       run: cmake .
            -Bbuild
-           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_VERBOSE_MAKEFILE=on
            -DOmega_h_USE_MPI=off
            -DOmega_h_USE_CUDA=on
