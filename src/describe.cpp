@@ -34,22 +34,31 @@ int main(int argc, char** argv)
         for(int dim=0; dim < mesh.dim(); dim++)
             oss << "(" << dim << ", " << counts[dim] << ", " << imb[dim] << ")\n";
 
-        oss << "\nTags by Dimension: (Dim, Tag, Size per Entity)\n";
+        oss << "\nTags by Dimension: (Dim, Tag, Type, Size per Number of Components)\n";
         for (int dim=0; dim < mesh.dim(); dim++)
         for (int tag=0; tag < mesh.ntags(dim); tag++) {
             auto tagbase = mesh.get_tag(dim, tag);
             int size;
-            if (tagbase->type() == OMEGA_H_I8)
-                size = mesh.get_tag<Omega_h::I8>(dim, tagbase->name())->array().size();
-            if (tagbase->type() == OMEGA_H_I32)
-                size = mesh.get_tag<Omega_h::I32>(dim, tagbase->name())->array().size();
-            if (tagbase->type() == OMEGA_H_I64)
-                size = mesh.get_tag<Omega_h::I64>(dim, tagbase->name())->array().size();
-            if (tagbase->type() == OMEGA_H_F64)
-                size = mesh.get_tag<Omega_h::Real>(dim, tagbase->name())->array().size();
+            std::string type;
+            if (tagbase->type() == OMEGA_H_I8) {
+                size = Omega_h::as<Omega_h::I8>(tagbase)->array().size();
+                type = "I8";
+            }
+            if (tagbase->type() == OMEGA_H_I32) {
+                size = Omega_h::as<Omega_h::I32>(tagbase)->array().size();
+                type = "I32";
+            }
+            if (tagbase->type() == OMEGA_H_I64) {
+                size = Omega_h::as<Omega_h::I64>(tagbase)->array().size();
+                type = "I64";
+            }
+            if (tagbase->type() == OMEGA_H_F64) {
+                size = Omega_h::as<Omega_h::Real>(tagbase)->array().size();
+                type = "F64";
+            }
 
-            size /= mesh.nents(dim);
-            oss << "(" << dim << ", " << tagbase->name().c_str() << ", " << size << ")\n";
+            size /= tagbase->ncomps();
+            oss << "(" << dim << ", " << tagbase->name().c_str() << ", " << type << ", " << size << ")\n";
         }
 
         std::cout << oss.str();
