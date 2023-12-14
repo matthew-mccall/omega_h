@@ -58,4 +58,4 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}/omega_h/build
       shell: bash
-      run: cmake --build .
+      run: cmake --build . -j2
