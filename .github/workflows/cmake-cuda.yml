@@ -12,11 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        kokkos: [on, off]
         mempool: [on, off]
-        exclude:
-        - kokkos: off
-          mempool: on
 
     steps:
     - uses: actions/checkout@v4
@@ -24,7 +20,6 @@ jobs:
         path: omega_h
 
     - uses: actions/checkout@v4
-      if: ${{ matrix.kokkos == 'on' }}
       with:
         repository: kokkos/kokkos
         path: kokkos
@@ -33,7 +28,6 @@ jobs:
       run: apt update && apt install -y cmake clang zlib1g-dev
 
     - name: Configure Kokkos
-      if: ${{ matrix.kokkos == 'on' }}
       shell: bash
       working-directory: ${{github.workspace}}/kokkos
       run: cmake .
@@ -43,7 +37,6 @@ jobs:
            -DCMAKE_INSTALL_PREFIX=build/install
 
     - name: Build Kokkos
-      if: ${{ matrix.kokkos == 'on' }}
       shell: bash
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
@@ -56,7 +49,7 @@ jobs:
            -DOmega_h_USE_MPI=off
            -DOmega_h_USE_CUDA=on
            -DOmega_h_CUDA_ARCH=75
-           -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
+           -DOmega_h_USE_Kokkos=on
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
            -DBUILD_TESTING=on
            -DBUILD_SHARED_LIBS=off
