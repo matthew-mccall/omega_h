@@ -24,8 +24,8 @@ jobs:
         repository: kokkos/kokkos
         path: kokkos
 
-    - name: Install CMake, Clang and ZLib
-      run: apt update && apt install -y cmake clang zlib1g-dev
+    - name: Install CMake and ZLib
+      run: apt update && apt install -y cmake zlib1g-dev
 
     - name: Configure Kokkos
       shell: bash
