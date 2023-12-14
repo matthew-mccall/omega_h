@@ -74,4 +74,4 @@ jobs:
 
     - name: Print
       if: always()
-      run: cat ${{runner.workspace}}/build/Testing/Temporary/LastTest.log
+      run: cat ${{github.workspace}}/omega_h/build/Testing/Temporary/LastTest.log
