@@ -93,7 +93,10 @@ void parallel_for(LO n, UnaryFunction&& f) {
 template <typename T>
 void parallel_for(LO n, T const& f, char const* name = "") {
 #if defined(OMEGA_H_USE_KOKKOS)
-  if (n > 0) Kokkos::parallel_for(name, policy(n), f);
+  if (n > 0) {
+    Kokkos::parallel_for(name, policy(n), f);
+    Kokkos::fence();
+  }
 #else
   (void)name;
   auto const first = IntIterator(0);

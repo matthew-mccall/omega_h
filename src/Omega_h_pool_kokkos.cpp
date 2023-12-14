@@ -42,7 +42,11 @@ auto CompareFreeIndices::operator()(size_t lhs, IndexPair rhs) const -> bool {
 StaticKokkosPool::StaticKokkosPool(size_t numChunks, size_t bytesPerChunks)
     : numberOfChunks(numChunks)
     , chunkSize(bytesPerChunks)
+#if defined(OMEGA_H_MEM_SPACE_SHARED)
+    , pool(Kokkos::kokkos_malloc<Kokkos::SharedSpace>(numChunks * bytesPerChunks)) {
+#else
     , pool(Kokkos::kokkos_malloc(numChunks * bytesPerChunks)) {
+#endif
   insertIntoSets({0, numChunks});
 }
 
@@ -161,7 +165,11 @@ auto StaticKokkosPool::getRequiredChunks(size_t n, size_t bytesPerChunk)
 }
 
 StaticKokkosPool::~StaticKokkosPool() {
+#if defined(OMEGA_H_MEM_SPACE_SHARED)
+  Kokkos::kokkos_free<Kokkos::SharedSpace>(pool);
+#else
   Kokkos::kokkos_free(pool);
+#endif
 }
 
 auto KokkosPool::getChunkSize() const -> size_t { return chunkSize; }
