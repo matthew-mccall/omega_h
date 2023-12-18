@@ -16,6 +16,14 @@ void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag,
     oss << "\tMin, Max: " << min << ", " << max << "\n\n";
 }
 
+template <typename T>
+void printValue(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
+    auto array = mesh.get_array<T>(dim, tagname);
+    auto each_eq_to = Omega_h::each_eq_to<T>(array, value);
+    auto num = Omega_h::get_sum(each_eq_to);
+    std::cout << "Num entities: " << num << "\n";
+}
+
 int main(int argc, char** argv)
 {
     auto lib = Omega_h::Library(&argc, &argv);
@@ -81,6 +89,27 @@ int main(int argc, char** argv)
                                         << counts[2] << ", "
                                         << counts[3] << ")\n";
         std::cout << oss.str();
+    }
+
+    std::string input;
+    while(true) {
+        std::cout << "Get num entities with value: options [tagname dim value] or [exit]\n";
+
+        std::string name = "";
+        int dim=0;
+        int value=0;
+        std::cin >> name;
+        if (name == "exit") break;
+        std::cin >> dim >> value;
+        auto tagbase = mesh.get_tagbase(dim, name);
+        if (tagbase->type() == OMEGA_H_I8)
+            printValue<Omega_h::I8>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_I32)
+            printValue<Omega_h::I32>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_I64)
+            printValue<Omega_h::I64>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_F64)
+            printValue<Omega_h::Real>(mesh, name, dim, value);
     }
     return 0;
 }
