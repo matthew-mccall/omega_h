@@ -1,6 +1,15 @@
 #include <Omega_h_element.hpp>
 #include <Omega_h_file.hpp>
+#include <Omega_h_tag.hpp>
 
+template <typename T>
+void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag, std::string type) {
+    auto tagbase = mesh.get_tag(dim, tag);
+    auto array = Omega_h::as<T>(tagbase)->array();
+    int size = array.size();
+    size /= tagbase->ncomps();
+    oss << "(" << dim << ", " << tagbase->name().c_str() << ", " << type << ", " << size << ")\n";
+}
 
 int main(int argc, char** argv)
 {
@@ -38,27 +47,14 @@ int main(int argc, char** argv)
         for (int dim=0; dim < mesh.dim(); dim++)
         for (int tag=0; tag < mesh.ntags(dim); tag++) {
             auto tagbase = mesh.get_tag(dim, tag);
-            int size;
-            std::string type;
-            if (tagbase->type() == OMEGA_H_I8) {
-                size = Omega_h::as<Omega_h::I8>(tagbase)->array().size();
-                type = "I8";
-            }
-            if (tagbase->type() == OMEGA_H_I32) {
-                size = Omega_h::as<Omega_h::I32>(tagbase)->array().size();
-                type = "I32";
-            }
-            if (tagbase->type() == OMEGA_H_I64) {
-                size = Omega_h::as<Omega_h::I64>(tagbase)->array().size();
-                type = "I64";
-            }
-            if (tagbase->type() == OMEGA_H_F64) {
-                size = Omega_h::as<Omega_h::Real>(tagbase)->array().size();
-                type = "F64";
-            }
-
-            size /= tagbase->ncomps();
-            oss << "(" << dim << ", " << tagbase->name().c_str() << ", " << type << ", " << size << ")\n";
+            if (tagbase->type() == OMEGA_H_I8)
+                printTagInfo<Omega_h::I8>(mesh, oss, dim, tag, "I8");
+            if (tagbase->type() == OMEGA_H_I32)
+                printTagInfo<Omega_h::I32>(mesh, oss, dim, tag, "I32");
+            if (tagbase->type() == OMEGA_H_I64)
+                printTagInfo<Omega_h::I64>(mesh, oss, dim, tag, "I64");
+            if (tagbase->type() == OMEGA_H_F64)
+                printTagInfo<Omega_h::Real>(mesh, oss, dim, tag, "F64");
         }
 
         std::cout << oss.str();
