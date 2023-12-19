@@ -17,11 +17,10 @@ void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag,
 }
 
 template <typename T>
-void printValue(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
+int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
     auto array = mesh.get_array<T>(dim, tagname);
     auto each_eq_to = Omega_h::each_eq_to<T>(array, value);
-    auto num = Omega_h::get_sum(each_eq_to);
-    std::cout << "Num entities: " << num << "\n";
+    return Omega_h::get_sum(each_eq_to);
 }
 
 int main(int argc, char** argv)
@@ -32,21 +31,6 @@ int main(int argc, char** argv)
 
     auto verbose = false;
     if (argc == 3) verbose = (std::string(argv[2]) == "on");
-    if (argc > 3) {
-        std::string name = std::string(argv[3]);
-        int dim = atoi(argv[4]);
-        int value = atoi(argv[5]);
-        auto tagbase = mesh.get_tagbase(dim, name);
-        if (tagbase->type() == OMEGA_H_I8)
-            printValue<Omega_h::I8>(mesh, name, dim, value);
-        if (tagbase->type() == OMEGA_H_I32)
-            printValue<Omega_h::I32>(mesh, name, dim, value);
-        if (tagbase->type() == OMEGA_H_I64)
-            printValue<Omega_h::I64>(mesh, name, dim, value);
-        if (tagbase->type() == OMEGA_H_F64)
-            printValue<Omega_h::Real>(mesh, name, dim, value);
-        return 0;
-    }
 
     const int rank = comm->rank();
 
@@ -104,6 +88,26 @@ int main(int argc, char** argv)
                                         << counts[2] << ", "
                                         << counts[3] << ")\n";
         std::cout << oss.str();
+    }
+
+    if (argc > 3) {
+        std::string name = std::string(argv[3]);
+        int dim = atoi(argv[4]);
+        int value = atoi(argv[5]);
+        auto tagbase = mesh.get_tagbase(dim, name);
+        int numEq = 0;
+        if (tagbase->type() == OMEGA_H_I8)
+            numEq = getNumEq<Omega_h::I8>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_I32)
+            numEq = getNumEq<Omega_h::I32>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_I64)
+            numEq = getNumEq<Omega_h::I64>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_F64)
+            numEq = getNumEq<Omega_h::Real>(mesh, name, dim, value);
+        
+        comm->barrier();
+        std::cout << "Rank, Num Entities Eq: " << rank << ", " << numEq << "\n";
+        return 0;
     }
     return 0;
 }
