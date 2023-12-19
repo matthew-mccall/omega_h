@@ -30,7 +30,7 @@ int main(int argc, char** argv)
     Omega_h::Mesh mesh = Omega_h::read_mesh_file(argv[1], lib.world());
 
     auto verbose = false;
-    if (argc == 3) verbose = (std::string(argv[2]) == "on");
+    if (argc >= 3) verbose = (std::string(argv[2]) == "on");
 
     const int rank = comm->rank();
 
@@ -105,8 +105,9 @@ int main(int argc, char** argv)
         if (tagbase->type() == OMEGA_H_F64)
             numEq = getNumEq<Omega_h::Real>(mesh, name, dim, value);
         
+        if (!rank) std::cout << "\nInput: (" << name << " " << dim << " " << value <<"), Output: (Rank, Num Entities Equal to Value)\n";
         comm->barrier();
-        std::cout << "Rank, Num Entities Eq: " << rank << ", " << numEq << "\n";
+        std::cout << "(" << rank << ", " << numEq << ")\n";
         return 0;
     }
     return 0;
