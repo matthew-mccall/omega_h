@@ -55,7 +55,7 @@ int main(int argc, char** argv)
         for(int dim=0; dim < mesh.dim(); dim++)
             oss << "(" << dim << ", " << counts[dim] << ", " << imb[dim] << ")\n";
 
-        oss << "\nTag Properties: (Name, Dim, Type)\n";
+        oss << "\nTag Properties by Dimension: (Name, Dim, Type)\n";
         for (int dim=0; dim < mesh.dim(); dim++)
         for (int tag=0; tag < mesh.ntags(dim); tag++) {
             auto tagbase = mesh.get_tag(dim, tag);
