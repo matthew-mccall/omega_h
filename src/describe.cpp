@@ -32,6 +32,21 @@ int main(int argc, char** argv)
 
     auto verbose = false;
     if (argc == 3) verbose = (std::string(argv[2]) == "on");
+    if (argc > 3) {
+        std::string name = std::string(argv[3]);
+        int dim = atoi(argv[4]);
+        int value = atoi(argv[5]);
+        auto tagbase = mesh.get_tagbase(dim, name);
+        if (tagbase->type() == OMEGA_H_I8)
+            printValue<Omega_h::I8>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_I32)
+            printValue<Omega_h::I32>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_I64)
+            printValue<Omega_h::I64>(mesh, name, dim, value);
+        if (tagbase->type() == OMEGA_H_F64)
+            printValue<Omega_h::Real>(mesh, name, dim, value);
+        return 0;
+    }
 
     const int rank = comm->rank();
 
@@ -89,27 +104,6 @@ int main(int argc, char** argv)
                                         << counts[2] << ", "
                                         << counts[3] << ")\n";
         std::cout << oss.str();
-    }
-
-    std::string input;
-    while(true) {
-        std::cout << "Get num entities with value: options [tagname dim value] or [exit]\n";
-
-        std::string name = "";
-        int dim=0;
-        int value=0;
-        std::cin >> name;
-        if (name == "exit") break;
-        std::cin >> dim >> value;
-        auto tagbase = mesh.get_tagbase(dim, name);
-        if (tagbase->type() == OMEGA_H_I8)
-            printValue<Omega_h::I8>(mesh, name, dim, value);
-        if (tagbase->type() == OMEGA_H_I32)
-            printValue<Omega_h::I32>(mesh, name, dim, value);
-        if (tagbase->type() == OMEGA_H_I64)
-            printValue<Omega_h::I64>(mesh, name, dim, value);
-        if (tagbase->type() == OMEGA_H_F64)
-            printValue<Omega_h::Real>(mesh, name, dim, value);
     }
     return 0;
 }
