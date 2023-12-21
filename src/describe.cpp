@@ -2,6 +2,7 @@
 #include <Omega_h_file.hpp>
 #include <Omega_h_tag.hpp>
 #include <Omega_h_array_ops.hpp>
+#include <iomanip>
 
 template <typename T>
 void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag, std::string type) {
@@ -11,9 +12,13 @@ void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag,
     Omega_h::Real min = get_min(array);
     Omega_h::Real max = get_max(array);
 
-    oss << "(" << tagbase->name().c_str() << ", " << dim << ", " << type << ")\n";
-    oss << "\tNum Components: " << tagbase->ncomps() << "\n";
-    oss << "\tMin, Max: " << min << ", " << max << "\n\n";
+    oss << std::setw(18) << std::left << tagbase->name().c_str()
+        << std::setw(5) << std::left << dim 
+        << std::setw(7) << std::left << type 
+        << std::setw(5) << std::left << tagbase->ncomps() 
+        << std::setw(10) << std::left << min 
+        << std::setw(10) << std::left << max 
+        << "\n";
 }
 
 template <typename T>
@@ -55,7 +60,7 @@ int main(int argc, char** argv)
         for(int dim=0; dim < mesh.dim(); dim++)
             oss << "(" << dim << ", " << counts[dim] << ", " << imb[dim] << ")\n";
 
-        oss << "\nTag Properties by Dimension: (Name, Dim, Type)\n";
+        oss << "\nTag Properties by Dimension: (Name, Dim, Type, Number of Components, Min. Value, Max. Value)\n";
         for (int dim=0; dim < mesh.dim(); dim++)
         for (int tag=0; tag < mesh.ntags(dim); tag++) {
             auto tagbase = mesh.get_tag(dim, tag);
