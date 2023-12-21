@@ -106,6 +106,18 @@ int main(int argc, char** argv)
                                         << counts[2] << ", "
                                         << counts[3] << ")\n";
         std::cout << oss.str();
+
+        comm->barrier();
+        if (!rank) std::cout << "\nPer Rank Mesh Entity Owned: (Rank: Entity Owned by Dim <0,1,2,3>)\n";
+        comm->barrier();
+        oss.str(""); // clear the stream
+        for (int dim=0; dim < mesh.dim(); dim++)
+            counts[dim] = mesh.nents_owned(dim);
+        oss << "(" << rank << ": " << counts[0] << ", "
+                                        << counts[1] << ", "
+                                        << counts[2] << ", "
+                                        << counts[3] << ")\n";
+        std::cout << oss.str();
     }
 
     if (cmdline.parsed("--tag-info")) {
