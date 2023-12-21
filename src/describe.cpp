@@ -2,6 +2,7 @@
 #include <Omega_h_file.hpp>
 #include <Omega_h_tag.hpp>
 #include <Omega_h_array_ops.hpp>
+#include <Omega_h_cmdline.hpp>
 #include <iomanip>
 
 template <typename T>
@@ -32,10 +33,22 @@ int main(int argc, char** argv)
 {
     auto lib = Omega_h::Library(&argc, &argv);
     auto comm = lib.world();
-    Omega_h::Mesh mesh = Omega_h::read_mesh_file(argv[1], lib.world());
 
-    auto verbose = false;
-    if (argc >= 3) verbose = (std::string(argv[2]) == "on");
+    Omega_h::CmdLine cmdline;
+    cmdline.add_arg<std::string>("mesh.osh");
+    cmdline.add_flag("-v", "verbose");
+    auto& tagInfoFlag = cmdline.add_flag("--tag-info", "space seperated \"name dim value\"");
+    tagInfoFlag.add_arg<std::string>("name");
+    tagInfoFlag.add_arg<int>("dim");
+    tagInfoFlag.add_arg<int>("value");
+    if (!cmdline.parse(comm, &argc, argv) ||
+        !Omega_h::CmdLine::check_empty(comm, argc, argv)) {
+        cmdline.show_help(comm, argv);
+        return -1;
+    }
+
+    std::string meshPath = cmdline.get<std::string>("mesh.osh");
+    Omega_h::Mesh mesh = Omega_h::read_mesh_file(meshPath, lib.world());
 
     const int rank = comm->rank();
 
@@ -77,7 +90,7 @@ int main(int argc, char** argv)
         std::cout << oss.str();
     }
 
-    if(verbose) {
+    if(cmdline.parsed("-v")) {
         comm->barrier(); // write the per-part data at the end
         if(!rank) {
           std::cout << "\nPer Rank Mesh Entity Count: (Rank: Entity Count by Dim <0,1,2,3>)\n";
@@ -95,10 +108,10 @@ int main(int argc, char** argv)
         std::cout << oss.str();
     }
 
-    if (argc > 3) {
-        std::string name = std::string(argv[3]);
-        int dim = atoi(argv[4]);
-        int value = atoi(argv[5]);
+    if (cmdline.parsed("--tag-info")) {
+        std::string name = cmdline.get<std::string>("--tag-info", "name");
+        int dim = cmdline.get<int>("--tag-info", "dim");
+        int value = cmdline.get<int>("--tag-info", "value");
         auto tagbase = mesh.get_tagbase(dim, name);
         int numEq = 0;
         if (tagbase->type() == OMEGA_H_I8)
