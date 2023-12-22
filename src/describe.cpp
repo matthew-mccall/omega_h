@@ -30,7 +30,7 @@ int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
 }
 
 void printMPIChar(std::string output, int comm_size, int comm_rank) {
-
+#ifdef OMEGA_H_USE_MPI
     if (comm_rank) {
         MPI_Send(output.c_str(), output.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
     } else for (int sender=1; sender < comm_size; sender++) {
@@ -43,6 +43,9 @@ void printMPIChar(std::string output, int comm_size, int comm_rank) {
         MPI_Recv(&buf, count, MPI_CHAR, sender, 0, MPI_COMM_WORLD, &status);
         std::cout << buf;
     }
+#else
+    std::cout << output;
+#endif
 }
 
 int main(int argc, char** argv)
