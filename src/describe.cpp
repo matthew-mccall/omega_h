@@ -29,14 +29,20 @@ int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
     return Omega_h::get_sum(each_eq_to);
 }
 
-void printMPIChar(int sender) {
-    MPI_Status status;
-    MPI_Probe(sender, 0, MPI_COMM_WORLD, &status);
-    int count;
-    MPI_Get_count(&status, MPI_CHAR, &count);
-    char buf [count];
-    MPI_Recv(&buf, count, MPI_CHAR, sender, 0, MPI_COMM_WORLD, &status);
-    std::cout << buf;
+void printMPIChar(std::string output, int comm_size, int comm_rank) {
+
+    if (comm_rank) {
+        MPI_Send(output.c_str(), output.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+    } else for (int sender=1; sender < comm_size; sender++) {
+        std::cout << output;
+        MPI_Status status;
+        MPI_Probe(sender, 0, MPI_COMM_WORLD, &status);
+        int count;
+        MPI_Get_count(&status, MPI_CHAR, &count);
+        char buf [count];
+        MPI_Recv(&buf, count, MPI_CHAR, sender, 0, MPI_COMM_WORLD, &status);
+        std::cout << buf;
+    }
 }
 
 int main(int argc, char** argv)
@@ -105,7 +111,6 @@ int main(int argc, char** argv)
         if(!rank) {
           std::cout << "\nPer Rank Mesh Entity Count: (Rank: Entity Count by Dim <0,1,2,3>)\n";
         }
-        comm->barrier(); // write the per-part data at the end
         oss.str(""); // clear the stream
 
         std::array<Omega_h::LO, 4> counts = {0,0,0,0};
@@ -115,24 +120,18 @@ int main(int argc, char** argv)
                                         << counts[1] << ", "
                                         << counts[2] << ", "
                                         << counts[3] << ")\n";
-        if (rank) {
-            MPI_Send(oss.str().c_str(), oss.str().size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-        } else for (int i=1; i < comm->size(); i++) {
-            std::cout << oss.str();
-            printMPIChar(i);
-        }
+        printMPIChar(oss.str(), comm->size(), rank);
 
-        // comm->barrier();
-        // if (!rank) std::cout << "\nPer Rank Mesh Entity Owned: (Rank: Entity Owned by Dim <0,1,2,3>)\n";
-        // comm->barrier();
-        // oss.str(""); // clear the stream
-        // for (int dim=0; dim < mesh.dim(); dim++)
-        //     counts[dim] = mesh.nents_owned(dim);
-        // oss << "(" << rank << ": " << counts[0] << ", "
-        //                                 << counts[1] << ", "
-        //                                 << counts[2] << ", "
-        //                                 << counts[3] << ")\n";
-        // std::cout << oss.str();
+        comm->barrier();
+        if (!rank) std::cout << "\nPer Rank Mesh Entity Owned: (Rank: Entity Owned by Dim <0,1,2,3>)\n";
+        oss.str(""); // clear the stream
+        for (int dim=0; dim < mesh.dim(); dim++)
+            counts[dim] = mesh.nents_owned(dim);
+        oss << "(" << rank << ": " << counts[0] << ", "
+                                        << counts[1] << ", "
+                                        << counts[2] << ", "
+                                        << counts[3] << ")\n";
+        printMPIChar(oss.str(), comm->size(), rank);
     }
 
     if (cmdline.parsed("--tag-info")) {
