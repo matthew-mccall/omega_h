@@ -1,4 +1,4 @@
-name: CMake test matrix
+name: CMake test matrix with CUDA
 on:
   push:
     branches: [ master ]
@@ -8,14 +8,11 @@ jobs:
   build:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-22.04
+    container: nvidia/cuda:12.3.0-devel-ubuntu22.04
+
     strategy:
       matrix:
-        compiler: [g++, clang++]
-        kokkos: [on, off]
         mempool: [on, off]
-        exclude:
-        - kokkos: off
-          mempool: on
 
     steps:
     - uses: actions/checkout@v4
@@ -23,22 +20,23 @@ jobs:
         path: omega_h
 
     - uses: actions/checkout@v4
-      if: ${{ matrix.kokkos == 'on' }}
       with:
         repository: kokkos/kokkos
         path: kokkos
 
+    - name: Install CMake and ZLib
+      run: apt update && apt install -y cmake zlib1g-dev
+
     - name: Configure Kokkos
-      if: ${{ matrix.kokkos == 'on' }}
       shell: bash
       working-directory: ${{github.workspace}}/kokkos
       run: cmake .
            -Bbuild
-           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DKokkos_ENABLE_CUDA=on
+           -DKokkos_ARCH_TURING75=on
            -DCMAKE_INSTALL_PREFIX=build/install
 
     - name: Build Kokkos
-      if: ${{ matrix.kokkos == 'on' }}
       shell: bash
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
@@ -47,25 +45,17 @@ jobs:
       working-directory: ${{github.workspace}}/omega_h
       run: cmake .
            -Bbuild
-           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_VERBOSE_MAKEFILE=on
            -DOmega_h_USE_MPI=off
-           -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
+           -DOmega_h_USE_CUDA=on
+           -DOmega_h_CUDA_ARCH=75
+           -DOmega_h_USE_Kokkos=on
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
-           -DBUILD_TESTING=ON
-           -DBUILD_SHARED_LIBS=OFF
+           -DBUILD_TESTING=on
+           -DBUILD_SHARED_LIBS=off
            -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
 
     - name: Build
       working-directory: ${{github.workspace}}/omega_h/build
       shell: bash
       run: cmake --build . -j2
-
-    - name: Test
-      working-directory: ${{github.workspace}}/omega_h/build
-      shell: bash
-      run: ctest
-
-    - name: Print
-      if: always()
-      run: cat ${{github.workspace}}/omega_h/build/Testing/Temporary/LastTest.log
