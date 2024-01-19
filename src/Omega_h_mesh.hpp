@@ -39,6 +39,7 @@ class Mesh {
   void set_library(Library* library);
   void set_comm(CommPtr const& comm);
   void set_family(Omega_h_Family family);
+  void set_model2d(Model2dPtr const& model);
   void set_matched(I8 is_matched);
   void set_dim(Int dim_in);
   void set_verts(LO nverts_in);
@@ -239,6 +240,7 @@ class Mesh {
  public:
   typedef std::shared_ptr<const TagBase> TagPtr;
   typedef std::shared_ptr<const Adj> AdjPtr;
+  typedef std::shared_ptr<const Model2d> Model2dPtr;
   typedef std::shared_ptr<const Dist> DistPtr;
   typedef std::shared_ptr<const inertia::Rib> RibPtr;
   typedef std::shared_ptr<const Parents> ParentPtr;
@@ -278,6 +280,7 @@ class Mesh {
   I8 matched_ = -1;
   Int dim_;
   CommPtr comm_;
+  Model2dPtr model2d_;
   Int parting_;
   Int nghost_layers_;
   LO nents_[DIMS];

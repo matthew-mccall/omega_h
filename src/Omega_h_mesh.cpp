@@ -45,6 +45,10 @@ void Mesh::set_library(Library* library_in) {
 
 Library* Mesh::library() const { return library_; }
 
+void Mesh::set_model2d(Model2dPtr const& model2d_in) {
+  model2d_ = model2d_in;
+}
+
 void Mesh::set_comm(CommPtr const& new_comm) {
   auto rank_had_comm = bool(comm_);
   auto nnew_had_comm = new_comm->allreduce(I32(rank_had_comm), OMEGA_H_SUM);
@@ -76,6 +80,7 @@ void Mesh::set_comm(CommPtr const& new_comm) {
   }
   comm_ = new_comm;
 }
+
 
 void Mesh::set_family(Omega_h_Family family_in) { family_ = family_in; }
 
