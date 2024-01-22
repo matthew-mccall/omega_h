@@ -19,6 +19,7 @@
 #include "Omega_h_file.hpp"
 #include "Omega_h_for.hpp"
 #include "Omega_h_mesh.hpp"
+#include "Omega_h_mixedMesh.hpp"
 #include "Omega_h_tag.hpp"
 #include "Omega_h_xml_lite.hpp"
 
@@ -42,7 +43,7 @@ TagSet get_all_vtk_tags(Mesh* mesh, Int cell_dim) {
   return tags;
 }
 
-TagSet get_all_vtk_tags_mix(Mesh* mesh, Int cell_dim) {
+TagSet get_all_vtk_tags_mix(MixedMesh* mesh, Int cell_dim) {
   TagSet tags;
   get_all_type_tags(mesh, VERT, Topo_type::vertex, &tags);
   if (cell_dim == 3) {
@@ -458,7 +459,7 @@ static void write_piece_start_tag(
 }
 
 static void write_piece_start_tag_mix(
-    std::ostream& stream, Mesh const* mesh, Int cell_dim) {
+    std::ostream& stream, MixedMesh const* mesh, Int cell_dim) {
   stream << "<Piece NumberOfPoints=\"" << mesh->nverts_mix() << "\"";
   if (cell_dim == 3) {
     stream << " NumberOfCells=\"" << mesh->nregions_mix() << "\">\n";
@@ -490,7 +491,7 @@ static void write_connectivity(
   write_array(stream, "offsets", 1, ends, compress);
 }
 
-static void write_connectivity(std::ostream& stream, Mesh* mesh, Int cell_dim,
+static void write_connectivity(std::ostream& stream, MixedMesh* mesh, Int cell_dim,
     Topo_type max_type, bool compress) {
   if (cell_dim == 3) {
     Read<I8> types_t(mesh->nents(Topo_type::tetrahedron),
@@ -819,7 +820,7 @@ void write_vtu(std::ostream& stream, Mesh* mesh, Int cell_dim,
   stream << "</VTKFile>\n";
 }
 
-void write_vtu(filesystem::path const& filename, Mesh* mesh, Topo_type max_type,
+void write_vtu(filesystem::path const& filename, MixedMesh* mesh, Topo_type max_type,
     bool compress) {
   auto tags = get_all_vtk_tags_mix(mesh, mesh->dim());
   OMEGA_H_TIME_FUNCTION;
