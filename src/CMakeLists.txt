@@ -403,7 +403,6 @@ function(test_func_impl TEST_NAME NUM_PROCS)
       ${d3dMesh}/d3d-coreMesh-numbered-gold.osh
       ${d3dMesh}/d3d-coreMesh-numbered-reordered.osh)
 
-    if(Omega_h_ENABLE_Mixed)
     osh_add_exe(mixed_writeMesh)
     set(TEST_EXES ${TEST_EXES} mixed_writeMesh)
     test_func(run_mixed_writeMesh 1 ./mixed_writeMesh
@@ -413,7 +412,6 @@ function(test_func_impl TEST_NAME NUM_PROCS)
     set(TEST_EXES ${TEST_EXES} mixed_test)
     test_func(run_mixed_test 1 ./mixed_test
       ${CMAKE_SOURCE_DIR}/meshes)
-    endif()
 
     osh_add_exe(periodic_test)
     set(TEST_EXES ${TEST_EXES} periodic_test)
