@@ -37,28 +37,34 @@ namespace Omega_h {
 
 namespace meshsim {
 
-void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
+struct SimMeshInfo {
+  int count_tet;
+  int count_hex;
+  int count_wedge;
+  int count_pyramid;
+  int count_tri;
+  int count_quad;
+  bool is_simplex;
+  bool is_hypercube;
+};
 
-  (void)mesh;
-
+SimMeshInfo getSimMeshInfo(pMesh m) {
   RIter regions = M_regionIter(m);
-  LO count_tet = 0;
-  LO count_hex = 0;
-  LO count_wedge = 0;
-  LO count_pyramid = 0;
+  SimMeshInfo info;
+
   pRegion rgn;
   while ((rgn = (pRegion) RIter_next(regions))) {
     if (R_topoType(rgn) == Rtet) {
-      count_tet += 1;
+      info.count_tet += 1;
     }
     else if (R_topoType(rgn) == Rhex) {
-      count_hex += 1;
+      info.count_hex += 1;
     }
     else if (R_topoType(rgn) == Rwedge) {
-      count_wedge += 1;
+      info.count_wedge += 1;
     }
     else if (R_topoType(rgn) == Rpyramid) {
-      count_pyramid += 1;
+      info.count_pyramid += 1;
     }
     else {
       Omega_h_fail("Region is not tet, hex, wedge, or pyramid \n");
@@ -68,14 +74,12 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
 
   FIter faces = M_faceIter(m);
   pFace face;
-  int count_tri = 0;
-  int count_quad = 0;
   while ((face = (pFace) FIter_next(faces))) {
     if (F_numEdges(face) == 3) {
-      count_tri += 1;
+      info.count_tri += 1;
     }
     else if (F_numEdges(face) == 4) {
-      count_quad += 1;
+      info.count_quad += 1;
     }
     else {
       Omega_h_fail ("Face is neither tri nor quad \n");
@@ -83,30 +87,30 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
   }
   FIter_delete(faces);
 
-  bool is_simplex = 0;
-  bool is_hypercube = 0;
-  if (count_hex == 0 && count_wedge == 0 && count_pyramid == 0) {
-    if (count_tet == 0) {
-      if (count_tri > 0) {
-        is_simplex = 1;
+  info.is_simplex = false;
+  info.is_hypercube = false;
+  if (info.count_hex == 0 && info.count_wedge == 0 && info.count_pyramid == 0) {
+    if (info.count_tet == 0) {
+      if (info.count_tri > 0) {
+        info.is_simplex = true;
       }
     }
-    else if (count_tet > 0) {
-      is_simplex = 1;
+    else if (info.count_tet > 0) {
+      info.is_simplex = true;
     }
     else {
       Omega_h_fail ("Invaild topology type\n");
     }
   }
 
-  if (count_tet == 0 && count_wedge == 0 && count_pyramid == 0) {
-    if (count_hex == 0) {
-      if (count_quad > 0) {
-        is_hypercube = 1;
+  if (info.count_tet == 0 && info.count_wedge == 0 && info.count_pyramid == 0) {
+    if (info.count_hex == 0) {
+      if (info.count_quad > 0) {
+        info.is_hypercube = true;
       }
     }
-    else if (count_hex > 0) {
-      is_hypercube = 1;
+    else if (info.count_hex > 0) {
+      info.is_hypercube = true;
     }
     else {
       Omega_h_fail ("Invaild topology type\n");
@@ -114,9 +118,13 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
   }
 
   fprintf(stderr, "tet=%d, hex=%d, wedge=%d, pyramid=%d\n",
-         count_tet, count_hex, count_wedge, count_pyramid);
-  fprintf(stderr, "tri=%d, quad=%d\n", count_tri, count_quad);
+         info.count_tet, info.count_hex, info.count_wedge, info.count_pyramid);
+  fprintf(stderr, "tri=%d, quad=%d\n", info.count_tri, info.count_quad);
+  return info;
+}
 
+void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
+  
   const int numVtx = M_numVertices(m);
   const int numEdges = M_numEdges(m);
   const int numFaces = M_numFaces(m);
@@ -263,14 +271,14 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
                       Read<I8>(host_class_dim_edge.write()));
   }
 
-  face_vertices[0].reserve(count_tri*3);
-  face_vertices[1].reserve(count_quad*4);
+  face_vertices[0].reserve(info.count_tri*3);
+  face_vertices[1].reserve(info.count_quad*4);
   std::vector<int> face_class_ids[2];
   std::vector<int> face_class_dim[2];
-  face_class_ids[0].reserve(count_tri);
-  face_class_dim[0].reserve(count_tri);
-  face_class_ids[1].reserve(count_quad);
-  face_class_dim[1].reserve(count_quad);
+  face_class_ids[0].reserve(info.count_tri);
+  face_class_dim[0].reserve(info.count_tri);
+  face_class_ids[1].reserve(info.count_quad);
+  face_class_dim[1].reserve(info.count_quad);
 
   faces = M_faceIter(m);
   while ((face = (pFace) FIter_next(faces))) {
@@ -312,15 +320,15 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
     host_class_ids_face[i] = ent_class_ids[2][static_cast<std::size_t>(i)];
     host_class_dim_face[i] = ent_class_dim[2][static_cast<std::size_t>(i)];
   }
-  HostWrite<LO> host_class_ids_tri(count_tri);
-  HostWrite<I8> host_class_dim_tri(count_tri);
-  for (int i = 0; i < count_tri; ++i) {
-    host_class_ids_tri[i] = face_class_ids[0][static_cast<std::size_t>(i)];
+  HostWrite<LO> host_class_ids_tri(info.count_tri);
+  HostWrite<I8> host_class_dim_tri(info.count_tri);
+  for (int i = 0; i < info.count_tri; ++i) {
+    host_class_ids_triinfo.[i] = face_class_ids[0][static_cast<std::size_t>(i)];
     host_class_dim_tri[i] = face_class_dim[0][static_cast<std::size_t>(i)];
   }
-  HostWrite<LO> host_class_ids_quad(count_quad);
-  HostWrite<I8> host_class_dim_quad(count_quad);
-  for (int i = 0; i < count_quad; ++i) {
+  HostWrite<LO> host_class_ids_quad(info.count_quad);
+  HostWrite<I8> host_class_dim_quad(info.count_quad);
+  for (int i = 0; i < info.count_quad; ++i) {
     host_class_ids_quad[i] = face_class_ids[1][static_cast<std::size_t>(i)];
     host_class_dim_quad[i] = face_class_dim[1][static_cast<std::size_t>(i)];
   }
@@ -335,8 +343,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
     edge2vert = mesh->get_adj(Topo_type::edge, Topo_type::vertex);
     vert2edge = mesh->ask_up(Topo_type::vertex, Topo_type::edge);
   }
-  HostWrite<LO> host_tri2verts(count_tri*3);
-  for (Int i = 0; i < count_tri; ++i) {
+  HostWrite<LO> host_tri2verts(info.count_tri*3);
+  for (Int i = 0; i < info.count_tri; ++i) {
     for (Int j = 0; j < 3; ++j) {
       host_tri2verts[i*3 + j] =
           face_vertices[0][static_cast<std::size_t>(i*3 + j)];
@@ -367,8 +375,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
                       Read<I8>(host_class_dim_tri.write()));
   }
 
-  HostWrite<LO> host_quad2verts(count_quad*4);
-  for (Int i = 0; i < count_quad; ++i) {
+  HostWrite<LO> host_quad2verts(info.count_quad*4);
+  for (Int i = 0; i < info.count_quad; ++i) {
     for (Int j = 0; j < 4; ++j) {
       host_quad2verts[i*4 + j] =
           face_vertices[1][static_cast<std::size_t>(i*4 + j)];
@@ -398,22 +406,22 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
                       Read<I8>(host_class_dim_quad.write()));
   }
 
-  if (!(count_tet == 0 && count_hex == 0 && count_wedge == 0 && 
-        count_pyramid == 0)) {
-    rgn_vertices[0].reserve(count_tet*4);
-    rgn_vertices[1].reserve(count_hex*8);
-    rgn_vertices[2].reserve(count_wedge*6);
-    rgn_vertices[3].reserve(count_pyramid*5);
+  if (!(info.count_tet == 0 && info.count_hex == 0 && info.count_wedge == 0 && 
+        info.count_pyramid == 0)) {
+    rgn_vertices[0].reserve(info.count_tet*4);
+    rgn_vertices[1].reserve(info.count_hex*8);
+    rgn_vertices[2].reserve(info.count_wedge*6);
+    rgn_vertices[3].reserve(info.count_pyramid*5);
     std::vector<int> rgn_class_ids[4];
     std::vector<int> rgn_class_dim[4];
-    rgn_class_ids[0].reserve(count_tet);
-    rgn_class_dim[0].reserve(count_tet);
-    rgn_class_ids[1].reserve(count_hex);
-    rgn_class_dim[1].reserve(count_hex);
-    rgn_class_ids[2].reserve(count_wedge);
-    rgn_class_dim[2].reserve(count_wedge);
-    rgn_class_ids[3].reserve(count_pyramid);
-    rgn_class_dim[3].reserve(count_pyramid);
+    rgn_class_ids[0].reserve(info.count_tet);
+    rgn_class_dim[0].reserve(info.count_tet);
+    rgn_class_ids[1].reserve(info.count_hex);
+    rgn_class_dim[1].reserve(info.count_hex);
+    rgn_class_ids[2].reserve(info.count_wedge);
+    rgn_class_dim[2].reserve(info.count_wedge);
+    rgn_class_ids[3].reserve(info.count_pyramid);
+    rgn_class_dim[3].reserve(info.count_pyramid);
 
     regions = M_regionIter(m);
     while ((rgn = (pRegion) RIter_next(regions))) {
@@ -479,27 +487,27 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
       host_class_ids_rgn[i] = ent_class_ids[3][static_cast<std::size_t>(i)];
       host_class_dim_rgn[i] = ent_class_dim[3][static_cast<std::size_t>(i)];
     }
-    HostWrite<LO> host_class_ids_tet(count_tet);
-    HostWrite<I8> host_class_dim_tet(count_tet);
-    for (int i = 0; i < count_tet; ++i) {
+    HostWrite<LO> host_class_ids_tet(info.count_tet);
+    HostWrite<I8> host_class_dim_tet(info.count_tet);
+    for (int i = 0; i < info.count_tet; ++i) {
       host_class_ids_tet[i] = rgn_class_ids[0][static_cast<std::size_t>(i)];
       host_class_dim_tet[i] = rgn_class_dim[0][static_cast<std::size_t>(i)];
     }
-    HostWrite<LO> host_class_ids_hex(count_hex);
-    HostWrite<I8> host_class_dim_hex(count_hex);
-    for (int i = 0; i < count_hex; ++i) {
+    HostWrite<LO> host_class_ids_hex(info.count_hex);
+    HostWrite<I8> host_class_dim_hex(info.count_hex);
+    for (int i = 0; i < info.count_hex; ++i) {
       host_class_ids_hex[i] = rgn_class_ids[1][static_cast<std::size_t>(i)];
       host_class_dim_hex[i] = rgn_class_dim[1][static_cast<std::size_t>(i)];
     }
-    HostWrite<LO> host_class_ids_wedge(count_wedge);
-    HostWrite<I8> host_class_dim_wedge(count_wedge);
-    for (int i = 0; i < count_wedge; ++i) {
+    HostWrite<LO> host_class_ids_wedge(info.count_wedge);
+    HostWrite<I8> host_class_dim_wedge(info.count_wedge);
+    for (int i = 0; i < info.count_wedge; ++i) {
       host_class_ids_wedge[i] = rgn_class_ids[2][static_cast<std::size_t>(i)];
       host_class_dim_wedge[i] = rgn_class_dim[2][static_cast<std::size_t>(i)];
     }
-    HostWrite<LO> host_class_ids_pyramid(count_pyramid);
-    HostWrite<I8> host_class_dim_pyramid(count_pyramid);
-    for (int i = 0; i < count_pyramid; ++i) {
+    HostWrite<LO> host_class_ids_pyramid(info.count_pyramid);
+    HostWrite<I8> host_class_dim_pyramid(info.count_pyramid);
+    for (int i = 0; i < info.count_pyramid; ++i) {
       host_class_ids_pyramid[i] = rgn_class_ids[3][static_cast<std::size_t>(i)];
       host_class_dim_pyramid[i] = rgn_class_dim[3][static_cast<std::size_t>(i)];
     }
@@ -523,8 +531,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
       vert2quad = mesh->ask_up(Topo_type::vertex, Topo_type::quadrilateral);
     }
 
-    HostWrite<LO> host_tet2verts(count_tet*4);
-    for (Int i = 0; i < count_tet; ++i) {
+    HostWrite<LO> host_tet2verts(info.count_tet*4);
+    for (Int i = 0; i < info.count_tet; ++i) {
       for (Int j = 0; j < 4; ++j) {
         host_tet2verts[i*4 + j] =
           rgn_vertices[0][static_cast<std::size_t>(i*4 + j)];
@@ -553,8 +561,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
           Read<I8>(host_class_dim_tet.write()));
     }
 
-    HostWrite<LO> host_hex2verts(count_hex*8);
-    for (Int i = 0; i < count_hex; ++i) {
+    HostWrite<LO> host_hex2verts(info.count_hex*8);
+    for (Int i = 0; i < info.count_hex; ++i) {
       for (Int j = 0; j < 8; ++j) {
         host_hex2verts[i*8 + j] =
           rgn_vertices[1][static_cast<std::size_t>(i*8 + j)];
@@ -584,8 +592,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
           Read<I8>(host_class_dim_hex.write()));
     }
 
-    HostWrite<LO> host_wedge2verts(count_wedge*6);
-    for (Int i = 0; i < count_wedge; ++i) {
+    HostWrite<LO> host_wedge2verts(info.count_wedge*6);
+    for (Int i = 0; i < info.count_wedge; ++i) {
       for (Int j = 0; j < 6; ++j) {
         host_wedge2verts[i*6 + j] =
           rgn_vertices[2][static_cast<std::size_t>(i*6 + j)];
@@ -608,8 +616,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering) {
           Read<I8>(host_class_dim_wedge.write()));
     }
 
-    HostWrite<LO> host_pyramid2verts(count_pyramid*5);
-    for (Int i = 0; i < count_pyramid; ++i) {
+    HostWrite<LO> host_pyramid2verts(info.count_pyramid*5);
+    for (Int i = 0; i < info.count_pyramid; ++i) {
       for (Int j = 0; j < 5; ++j) {
         host_pyramid2verts[i*5 + j] =
           rgn_vertices[3][static_cast<std::size_t>(i*5 + j)];
@@ -645,12 +653,13 @@ Mesh readImpl(filesystem::path const& mesh_fname, filesystem::path const& mdl_fn
   pProgress p = NULL;
   pGModel g = GM_load(mdl_fname.c_str(), nm, p);
   pMesh m = M_load(mesh_fname.c_str(), g, p);
+  auto simMeshInfo = getSimMeshInfo(m);
   const bool hasNumbering = (numbering_fname.native() != std::string(""));
   pMeshNex numbering = hasNumbering ? MeshNex_load(numbering_fname.c_str(), m) : nullptr;
   auto mesh = Mesh(comm->library());
   mesh.set_comm(comm);
   mesh.set_parting(OMEGA_H_ELEM_BASED);
-  meshsim::read_internal(m, &mesh, numbering);
+  meshsim::read_internal(m, &mesh, numbering, simMeshInfo);
   if(hasNumbering) MeshNex_delete(numbering);
   M_release(m);
   GM_release(g);
