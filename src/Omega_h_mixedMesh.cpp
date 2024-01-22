@@ -48,6 +48,23 @@ LO MixedMesh::nents(Topo_type ent_type) const {
   return nents_type_[int(ent_type)];
 }
 
+Int MixedMesh::ent_dim(Topo_type ent_type) const {
+  Int ent_dim;
+  if (int(ent_type) == 0) {
+    ent_dim = 0;
+  }
+  else if (int(ent_type) == 1) {
+    ent_dim = 1;
+  }
+  else if ((int(ent_type) > 1) && (int(ent_type) < 4)) {
+    ent_dim = 2;
+  }
+  else {
+    ent_dim = 3;
+  }
+  return ent_dim;
+}
+
 LO MixedMesh::npyrams() const { return nents(Topo_type::pyramid); }
 
 LO MixedMesh::nwedges() const { return nents(Topo_type::wedge); }
@@ -64,14 +81,14 @@ LO MixedMesh::nedges_mix() const { return nents(Topo_type::edge); }
 
 LO MixedMesh::nverts_mix() const { return nents(Topo_type::vertex); }
 
-LO MixedMesh::nregions_mix() const { 
+LO MixedMesh::nregions_mix() const {
   return (nents(Topo_type::tetrahedron) +
           nents(Topo_type::hexahedron) +
           nents(Topo_type::wedge) +
           nents(Topo_type::pyramid));
 }
 
-LO MixedMesh::nfaces_mix() const { 
+LO MixedMesh::nfaces_mix() const {
   return (nents(Topo_type::triangle) +
           nents(Topo_type::quadrilateral));
 }
@@ -223,6 +240,11 @@ MixedMesh::TagIter MixedMesh::tag_iter(Topo_type ent_type, std::string const& na
       [&](TagPtr const& a) { return a->name() == name; });
 }
 
+MixedMesh::TagCIter MixedMesh::tag_iter(Topo_type ent_type, std::string const& name) const {
+  return std::find_if(tags_type_[int(ent_type)].begin(), tags_type_[int(ent_type)].end(),
+      [&](TagPtr const& a) { return a->name() == name; });
+}
+
 void MixedMesh::check_type(Topo_type ent_type) const {
   OMEGA_H_CHECK(Topo_type::vertex <= ent_type);
   OMEGA_H_CHECK(ent_type <= Topo_type::pyramid);
@@ -238,25 +260,25 @@ void MixedMesh::add_adj(Topo_type from_type, Topo_type to_type, Adj adj) {
   check_type(to_type);
   OMEGA_H_CHECK(adj.ab2b.exists());
   const int from = int(from_type);
-  const int to = int(to_type); 
+  const int to = int(to_type);
 
   if (to < from) {
-    OMEGA_H_CHECK(!adj.a2ab.exists());                         
+    OMEGA_H_CHECK(!adj.a2ab.exists());
     if (to_type == Topo_type::vertex) {
       OMEGA_H_CHECK(!adj.codes.exists());
     } else {
       OMEGA_H_CHECK(adj.codes.exists());
     }
-    OMEGA_H_CHECK(                                            
+    OMEGA_H_CHECK(
         adj.ab2b.size() == nents(from_type) * element_degree(from_type, to_type));
   } else {
     if (from < to) {
-      OMEGA_H_CHECK(adj.a2ab.exists());                        
+      OMEGA_H_CHECK(adj.a2ab.exists());
       OMEGA_H_CHECK(adj.codes.exists());
       OMEGA_H_CHECK(
-          adj.ab2b.size() == nents(to_type) * element_degree(to_type, from_type)); 
+          adj.ab2b.size() == nents(to_type) * element_degree(to_type, from_type));
     }
-    OMEGA_H_CHECK(adj.a2ab.size() == nents(from_type) + 1);         
+    OMEGA_H_CHECK(adj.a2ab.size() == nents(from_type) + 1);
   }
   adjs_type_[from][to] = std::make_shared<Adj>(adj);
 }
@@ -289,7 +311,7 @@ Adj MixedMesh::derive_adj(Topo_type from_type, Topo_type to_type) {
     }
     Adj h2m = ask_adj(from_type, mid_type);
     Adj m2l = ask_adj(mid_type, to_type);
-    Adj h2l = transit(h2m, m2l, from_type, to_type, mid_type); 
+    Adj h2l = transit(h2m, m2l, from_type, to_type, mid_type);
     return h2l;
   }
   /* todo: add second order adjacency derivation */

@@ -62,6 +62,7 @@ set(Omega_h_SOURCES
   Omega_h_math_lang.cpp
   Omega_h_matrix.cpp
   Omega_h_mesh.cpp
+  Omega_h_mixedMesh.cpp
   Omega_h_rcFields.cpp
   Omega_h_metric.cpp
   Omega_h_metric_input.cpp
@@ -638,6 +639,7 @@ set(Omega_h_HEADERS
   Omega_h_math_lang.hpp
   Omega_h_matrix.hpp
   Omega_h_mesh.hpp
+  Omega_h_mixedMesh.hpp
   Omega_h_metric.hpp
   Omega_h_mpi.h
   Omega_h_owners.hpp
