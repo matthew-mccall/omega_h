@@ -167,7 +167,7 @@ struct SimMeshEntInfo {
         vtxInfo.coords[v * maxDim + j] = xyz[j];
       }
       vtxInfo.id[v] = classId(vtx);
-      vtxInfo.id[v] = classType(vtx);
+      vtxInfo.dim[v] = classType(vtx);
       if(hasNumbering) {
         vtxInfo.numbering[v] = getNumber(numbering,vtx);
       }
@@ -195,7 +195,7 @@ struct SimMeshEntInfo {
         V_coord(vtx,xyz);
       }
       edgeClass.id[edgeIdx] = classId(edge);
-      edgeClass.id[edgeIdx] = classType(edge);
+      edgeClass.dim[edgeIdx] = classType(edge);
       edgeIdx++;
     }
     EIter_delete(edges);
@@ -277,7 +277,8 @@ struct SimMeshEntInfo {
   //host_class_ids_face
   //host_class_dim_face
   EntClass readMonoTopoFaces(pMesh m, GO numFaces, LO vtxPerFace) {
-    std::vector<int> face_vertices(numFaces*vtxPerFace);
+    std::vector<int> face_vertices;
+    face_vertices.reserve(numFaces*vtxPerFace);
     HostWrite<LO> host_face_class_ids(numFaces);
     HostWrite<I8> host_face_class_dim(numFaces);
 
@@ -380,7 +381,7 @@ struct SimMeshEntInfo {
         }
         PList_delete(verts);
         wedge.id[wedgeIdx] = classId(rgn);
-        wedge.id[wedgeIdx] = classType(rgn);
+        wedge.dim[wedgeIdx] = classType(rgn);
         wedgeIdx++;
       }
       else if (R_topoType(rgn) == Rpyramid) {
@@ -393,7 +394,7 @@ struct SimMeshEntInfo {
         }
         PList_delete(verts);
         pyramid.id[pyramidIdx] = classId(rgn);
-        pyramid.id[pyramidIdx] = classType(rgn);
+        pyramid.dim[pyramidIdx] = classType(rgn);
         pyramidIdx++;
       }
       else {
@@ -410,7 +411,8 @@ struct SimMeshEntInfo {
       Omega_h_fail("Mono topology 3d mesh must be all tets or all hex\n");
     }
 
-    std::vector<int> rgn_vertices(numRgn*vtxPerRgn);
+    std::vector<int> rgn_vertices;
+    rgn_vertices.reserve(numRgn*vtxPerRgn);
     HostWrite<LO> rgn_class_ids(numRgn);
     HostWrite<I8> rgn_class_dim(numRgn);
 
