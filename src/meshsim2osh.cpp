@@ -28,10 +28,11 @@ int main(int argc, char** argv) {
   auto isMixed = Omega_h::meshsim::isMixed(mesh_in, model_in);
   std::cerr << "isMixed " << isMixed << "\n";
   //TODO - call the correct reader (mixed vs mono)
-  auto mesh = Omega_h::meshsim::read(mesh_in, model_in, numbering_in, comm);
-  auto family = mesh.family();
-  if ((family == OMEGA_H_SIMPLEX) || family == OMEGA_H_HYPERCUBE) {
+  if( !isMixed ) {
+    auto mesh = Omega_h::meshsim::read(mesh_in, model_in, numbering_in, comm);
     Omega_h::binary::write(mesh_out, &mesh);
+  } else {
+    auto mesh = Omega_h::meshsim::readMixed(mesh_in, model_in, comm);
   }
 
   return 0;
