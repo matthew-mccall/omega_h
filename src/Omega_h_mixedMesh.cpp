@@ -25,9 +25,17 @@
 
 namespace Omega_h {
 
-MixedMesh::MixedMesh() {
+void MixedMesh::init() {
   for (Int i = 0; i <= 7; ++i) nents_type_[i] = -1;
 }
+
+MixedMesh::MixedMesh() {
+  init();
+}
+
+MixedMesh::MixedMesh(Library* library) : Mesh(library) {
+  init();
+};
 
 void MixedMesh::set_verts_type(LO nverts_in) { nents_type_[int(Topo_type::vertex)] = nverts_in; }
 

@@ -9,7 +9,7 @@ namespace Omega_h {
 class MixedMesh : public Mesh {
  public:
   MixedMesh();
-  MixedMesh(Library* library) : Mesh(library) {};
+  MixedMesh(Library* library);
   void set_verts_type(LO nverts_in);
   void set_ents(Topo_type high_type, Topo_type low_type, Adj h2l);
   LO nents(Topo_type ent_type) const;
@@ -68,6 +68,7 @@ class MixedMesh : public Mesh {
   LO nents_type_[TOPO_TYPES];
   TagVector tags_type_[TOPO_TYPES];
   AdjPtr adjs_type_[TOPO_TYPES][TOPO_TYPES];
+  void init();
 
  public:
   void add_coords_mix(Reals array);
