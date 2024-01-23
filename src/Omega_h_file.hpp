@@ -33,6 +33,13 @@ void write_sol(Mesh* mesh, std::string const& filepath,
 #ifdef OMEGA_H_USE_SIMMODSUITE
 namespace meshsim {
 /**
+ * Return if the mesh is mixed or mono topology
+ * @param[in] mesh path to Simmetrix .sms mesh file
+ * @param[in] model path to Simmetrix GeomSim .smd model file
+ */
+bool isMixed(filesystem::path const& mesh, filesystem::path const& model);
+
+/**
  * Convert a serial Simmetrix sms mesh classified on the specified model to an
  * Omega_h mesh instance.
  * @param[in] mesh path to Simmetrix .sms mesh file

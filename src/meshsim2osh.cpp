@@ -25,6 +25,9 @@ int main(int argc, char** argv) {
     std::cout << "attaching numbering...\n";
     numbering_in = cmdline.get<std::string>("-numbering", "numbering-in");
   }
+  auto isMixed = Omega_h::meshsim::isMixed(mesh_in, model_in);
+  std::cerr << "isMixed " << isMixed << "\n";
+  //TODO - call the correct reader (mixed vs mono)
   auto mesh = Omega_h::meshsim::read(mesh_in, model_in, numbering_in, comm);
   auto family = mesh.family();
   if ((family == OMEGA_H_SIMPLEX) || family == OMEGA_H_HYPERCUBE) {

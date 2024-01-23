@@ -569,6 +569,23 @@ Mesh readImpl(filesystem::path const& mesh_fname, filesystem::path const& mdl_fn
   return mesh;
 }
 
+bool isMixed(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname) {
+  SimModel_start();
+  Sim_readLicenseFile(NULL);
+  SimDiscrete_start(0);
+  pNativeModel nm = NULL;
+  pProgress p = NULL;
+  pGModel g = GM_load(mdl_fname.c_str(), nm, p);
+  pMesh m = M_load(mesh_fname.c_str(), g, p);
+  auto simMeshInfo = getSimMeshInfo(m);
+  M_release(m);
+  GM_release(g);
+  SimDiscrete_stop(0);
+  SimModel_stop();
+  bool isMixed = (!simMeshInfo.is_simplex && !simMeshInfo.is_hypercube);
+  return isMixed;
+}
+
 Mesh read(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
     filesystem::path const& numbering_fname, CommPtr comm) {
   return readImpl(mesh_fname, mdl_fname, numbering_fname, comm);
