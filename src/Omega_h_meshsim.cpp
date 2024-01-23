@@ -208,26 +208,21 @@ struct SimMeshEntInfo {
     EntClass quad;
   };
 
-  //mixed output:
-  //tri2verts - face_vertices[0]
-  //host_class_ids_tri
-  //host_class_dim_tri
-  //quads2verts - face_vertices[1]
-  //host_class_ids_quad
-  //host_class_dim_quad
   MixedFaceClass readMixedFaces(pMesh m, GO count_tri, GO count_quad) {
-    std::vector<int> face_vertices[2];
-    face_vertices[0].reserve(count_tri*3);
-    face_vertices[1].reserve(count_quad*4);
-    HostWrite<LO> host_class_ids_tri(count_tri);
-    HostWrite<I8> host_class_dim_tri(count_tri);
-    HostWrite<LO> host_class_ids_quad(count_quad);
-    HostWrite<I8> host_class_dim_quad(count_quad);
+    EntClass tri;
+    tri.verts.reserve(count_tri*3);
+    tri.id = HostWrite<LO>(count_tri);
+    tri.dim = HostWrite<I8>(count_tri);
+    int triIdx = 0;
+
+    EntClass quad;
+    quad.verts.reserve(count_quad*4);
+    quad.id = HostWrite<LO>(count_quad);
+    quad.dim = HostWrite<I8>(count_quad);
+    int quadIdx = 0;
 
     FIter faces = M_faceIter(m);
     pFace face;
-    int triIdx = 0;
-    int quadIdx = 0;
     while ((face = (pFace) FIter_next(faces))) {
       if (F_numEdges(face) == 3) {
         pVertex tri_vertex;
@@ -235,11 +230,11 @@ struct SimMeshEntInfo {
         assert (PList_size(tri_vertices) == 3);
         void *iter = 0;
         while ((tri_vertex = (pVertex) PList_next(tri_vertices, &iter))) {
-          face_vertices[0].push_back(EN_id(tri_vertex));
+          tri.verts.push_back(EN_id(tri_vertex));
         }
         PList_delete(tri_vertices);
-        host_class_ids_tri[triIdx] = classId(face);
-        host_class_dim_tri[triIdx] = classType(face);
+        tri.id[triIdx] = classId(face);
+        tri.dim[triIdx] = classType(face);
         triIdx++;
       }
       else if (F_numEdges(face) == 4) {
@@ -248,11 +243,11 @@ struct SimMeshEntInfo {
         assert (PList_size(quad_vertices) == 4);
         void *iter = 0;
         while ((quad_vertex = (pVertex) PList_next(quad_vertices, &iter))) {
-          face_vertices[1].push_back(EN_id(quad_vertex));
+          quad.verts.push_back(EN_id(quad_vertex));
         }
         PList_delete(quad_vertices);
-        host_class_ids_quad[quadIdx] = classId(face);
-        host_class_dim_quad[quadIdx] = classType(face);
+        quad.id[quadIdx] = classId(face);
+        quad.dim[quadIdx] = classType(face);
         quadIdx++;
       }
       else {
@@ -261,30 +256,18 @@ struct SimMeshEntInfo {
     }
     FIter_delete(faces);
 
-    return MixedFaceClass{
-             EntClass{host_class_ids_tri, host_class_dim_tri, face_vertices[0]},
-             EntClass{host_class_ids_quad, host_class_dim_quad, face_vertices[1]}
-           };
+    return MixedFaceClass{tri,quad};
   }
  
-  //mono output:
-  //==simplex==
-  //tri2verts - face_vertices[0]
-  //host_class_ids_face
-  //host_class_dim_face
-  //==hypecube==
-  //quad2verts - face_vertices[1]
-  //host_class_ids_face
-  //host_class_dim_face
   EntClass readMonoTopoFaces(pMesh m, GO numFaces, LO vtxPerFace) {
-    std::vector<int> face_vertices;
-    face_vertices.reserve(numFaces*vtxPerFace);
-    HostWrite<LO> host_face_class_ids(numFaces);
-    HostWrite<I8> host_face_class_dim(numFaces);
+    EntClass ents;
+    ents.verts.reserve(numFaces*vtxPerFace);
+    ents.id = HostWrite<LO>(numFaces);
+    ents.dim = HostWrite<I8>(numFaces);
+    int faceIdx = 0;
 
     FIter faces = M_faceIter(m);
     pFace face;
-    int faceIdx = 0;
     while ((face = (pFace) FIter_next(faces))) {
       assert(F_numEdges(face) == vtxPerFace);
       pVertex vertex;
@@ -292,15 +275,15 @@ struct SimMeshEntInfo {
       assert (PList_size(vertices) == vtxPerFace);
       void *iter = 0;
       while ((vertex = (pVertex) PList_next(vertices, &iter))) {
-        face_vertices.push_back(EN_id(vertex));
+        ents.verts.push_back(EN_id(vertex));
       }
       PList_delete(vertices);
-      host_face_class_ids[faceIdx] = classId(face);
-      host_face_class_dim[faceIdx] = classType(face);
+      ents.id[faceIdx] = classId(face);
+      ents.dim[faceIdx] = classType(face);
       faceIdx++;
     }
     FIter_delete(faces);
-    return EntClass({host_face_class_ids, host_face_class_dim, face_vertices});
+    return ents;
   }
 
   struct MixedRgnClass {
