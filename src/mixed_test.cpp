@@ -2,7 +2,7 @@
 #include <string>
 
 #include "Omega_h_file.hpp"
-#include "Omega_h_mesh.hpp"
+#include "Omega_h_mixedMesh.hpp"
 
 #include "Omega_h_element.hpp"
 #include "Omega_h_array_ops.hpp"
@@ -17,7 +17,7 @@ void test_degree() {
   OMEGA_H_CHECK(element_degree(Topo_type::pyramid, Topo_type::quadrilateral) == 1);
 }
 
-void test_tags(Mesh* mesh) {
+void test_tags(MixedMesh* mesh) {
   auto num_wedge = mesh->nwedges();
   mesh->add_tag<LO>(Topo_type::wedge, "gravity", 1);
   mesh->set_tag<LO>(Topo_type::wedge, "gravity", LOs(num_wedge,10));
@@ -32,7 +32,7 @@ void test_tags(Mesh* mesh) {
   mesh->remove_tag(Topo_type::pyramid, "density");
 }
 
-void test_adjs(Mesh* mesh) {
+void test_adjs(MixedMesh* mesh) {
 
   //get number of entities
   auto num_vertex = mesh->nverts_mix();

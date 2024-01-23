@@ -10,6 +10,7 @@
 #include <Omega_h_defines.hpp>
 #include <Omega_h_filesystem.hpp>
 #include <Omega_h_mesh.hpp>
+#include <Omega_h_mixedMesh.hpp>
 #include <Omega_h_tag.hpp>
 
 namespace Omega_h {
@@ -41,7 +42,8 @@ namespace meshsim {
 Mesh read(filesystem::path const& mesh, filesystem::path const& model,
           CommPtr comm);
 /**
- * Convert a serial Simmetrix sms mesh classified on the specified model to an
+ * Convert a mono topology (i.e., all tets, all triangles, all hex, etc.)
+ * serial Simmetrix sms mesh classified on the specified model to an
  * Omega_h mesh instance and attach a Simmetrix MeshNex vertex numbering.
  * @param[in] mesh path to Simmetrix .sms mesh file
  * @param[in] model path to Simmetrix GeomSim .smd model file
@@ -50,6 +52,15 @@ Mesh read(filesystem::path const& mesh, filesystem::path const& model,
  */
 Mesh read(filesystem::path const& mesh, filesystem::path const& model,
           filesystem::path const& numbering, CommPtr comm);
+/**
+ * Convert a mixed topology (i.e., tet + wedge) serial Simmetrix sms mesh
+ * classified on the specified model to an Omega_h mesh instance.
+ * @param[in] mesh path to Simmetrix .sms mesh file
+ * @param[in] model path to Simmetrix GeomSim .smd model file
+ * @param[in] comm path to Omega_h communicator instance
+ */
+MixedMesh readMixed(filesystem::path const& mesh, filesystem::path const& model,
+          CommPtr comm);
 void matchRead(filesystem::path const& mesh_fname, filesystem::path const& model,
                CommPtr comm, Mesh *mesh, I8 is_in);
 }  // namespace meshsim
