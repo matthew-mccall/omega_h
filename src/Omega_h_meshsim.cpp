@@ -127,39 +127,34 @@ SimMeshInfo getSimMeshInfo(pMesh m) {
 struct SimMeshEntInfo {
   int maxDim;
   bool hasNumbering;
-  std::vector<int> ent_class_ids[4];
-  std::vector<int> ent_class_dim[4];
-  std::vector<int> ent_numbering;
-  HostWrite<Real> host_coords;
-  HostWrite<LO> host_class_ids_vtx;
-  HostWrite<I8> host_class_dim_vtx;
-  HostWrite<LO> host_class_ids_edge;
-  HostWrite<I8> host_class_dim_edge;
-
-  HostWrite<LO> host_e2v;
 
   SimMeshEntInfo(std::array<int,4> numEnts, bool hasNumbering_in) {
     hasNumbering = hasNumbering_in;
     maxDim = getMaxDim(numEnts);
-    for(int dim=0; dim<4; dim++) {
-      ent_class_ids[dim].reserve(numEnts[dim]);
-      ent_class_dim[dim].reserve(numEnts[dim]);
-    }
-    if(hasNumbering) {
-      ent_numbering.reserve(numEnts[0]);
-    }
-    host_coords = HostWrite<Real>(numEnts[0]*maxDim);
-
-    host_class_ids_vtx = HostWrite<LO>(numEnts[0]);
-    host_class_dim_vtx = HostWrite<I8>(numEnts[0]);
-
-    host_class_ids_edge = HostWrite<LO>(numEnts[1]);
-    host_class_dim_edge = HostWrite<I8>(numEnts[1]);
-
-    host_e2v = HostWrite<LO>(numEnts[1]*2);
   }
 
-  void readVerts(pMesh m,pMeshNex numbering) {
+  struct EntClass {
+    HostWrite<LO> id;
+    HostWrite<I8> dim;
+    std::vector<int> verts;
+  };
+
+  struct VertexInfo {
+    HostWrite<Real> coords;
+    HostWrite<LO> id;
+    HostWrite<I8> dim;
+    HostWrite<LO> numbering;
+  };
+
+  VertexInfo readVerts(pMesh m,pMeshNex numbering) {
+    const int numVtx = M_numVertices(m);
+    VertexInfo vtxInfo;
+    vtxInfo.coords = HostWrite<Real>(numVtx*maxDim);
+    vtxInfo.id = HostWrite<LO>(numVtx);
+    vtxInfo.dim = HostWrite<I8>(numVtx);
+    if(hasNumbering)
+      vtxInfo.numbering = HostWrite<LO>(numVtx);
+
     VIter vertices = M_vertexIter(m);
     pVertex vtx;
     LO v = 0;
@@ -169,63 +164,44 @@ struct SimMeshEntInfo {
       if( maxDim < 3 && xyz[2] != 0 )
         Omega_h_fail("The z coordinate must be zero for a 2d mesh!\n");
       for(int j=0; j<maxDim; j++) {
-        host_coords[v * maxDim + j] = xyz[j];
+        vtxInfo.coords[v * maxDim + j] = xyz[j];
       }
-      ent_class_ids[0].push_back(classId(vtx));
-      ent_class_dim[0].push_back(classType(vtx));
+      vtxInfo.id[v] = classId(vtx);
+      vtxInfo.id[v] = classType(vtx);
       if(hasNumbering) {
-        ent_numbering.push_back(getNumber(numbering,vtx));
+        vtxInfo.numbering[v] = getNumber(numbering,vtx);
       }
       ++v;
     }
     VIter_delete(vertices);
-
-    // WHY NOT STORE DIRECTORY INTO HostWrite???
-    const int numVtx = M_numVertices(m);
-    for (int i = 0; i < numVtx; ++i) {
-      host_class_ids_vtx[i] = ent_class_ids[0][static_cast<std::size_t>(i)];
-      host_class_dim_vtx[i] = ent_class_dim[0][static_cast<std::size_t>(i)];
-    }
+    return vtxInfo;
   }
 
-  void readEdges(pMesh m) {
-    std::vector<int> edge_vertices[1]; //TODO remove the '[1]'
+  EntClass readEdges(pMesh m) {
     const int numEdges = M_numEdges(m);
-    edge_vertices[0].reserve(numEdges*2);
+    EntClass edgeClass;
+    edgeClass.verts.reserve(numEdges*2);
+    edgeClass.id = HostWrite<LO>(numEdges);
+    edgeClass.dim = HostWrite<I8>(numEdges);
+    auto edgeIdx = 0;
+    
     EIter edges = M_edgeIter(m);
     pEdge edge;
-    int count_edge = 0;
     while ((edge = (pEdge) EIter_next(edges))) {
       double xyz[3];
-      count_edge += 1;
       for(int j=0; j<2; ++j) {
         pVertex vtx = E_vertex(edge,j);
-        edge_vertices[0].push_back(EN_id(vtx));
+        edgeClass.verts.push_back(EN_id(vtx));
         V_coord(vtx,xyz);
       }
-      ent_class_ids[1].push_back(classId(edge));
-      ent_class_dim[1].push_back(classType(edge));
+      edgeClass.id[edgeIdx] = classId(edge);
+      edgeClass.id[edgeIdx] = classType(edge);
+      edgeIdx++;
     }
     EIter_delete(edges);
-
-    for (int i = 0; i < numEdges; ++i) {
-      host_class_ids_edge[i] = ent_class_ids[1][static_cast<std::size_t>(i)];
-      host_class_dim_edge[i] = ent_class_dim[1][static_cast<std::size_t>(i)];
-    }
-
-    for (Int i = 0; i < numEdges; ++i) {
-      for (Int j = 0; j < 2; ++j) {
-        host_e2v[i*2 + j] =
-          edge_vertices[0][static_cast<std::size_t>(i*2 + j)];
-      }
-    }
+    return edgeClass;
   }
 
-  struct EntClass {
-    HostWrite<LO> id;
-    HostWrite<I8> dim;
-    std::vector<int> verts;
-  };
 
   struct MixedFaceClass {
     EntClass tri;
@@ -478,8 +454,7 @@ struct SimMeshEntInfo {
     }
     return max_dim;
   }
-};
-
+}; //end SimMeshEntInfo
 
 void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   assert(!info.is_simplex && !info.is_hypercube);
@@ -496,27 +471,33 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   const bool hasNumbering = false;
 
   SimMeshEntInfo simEnts({{numVtx,numEdges,numFaces,numRegions}}, hasNumbering);
-
-  simEnts.readVerts(m,nullptr);
-
   mesh->set_dim(simEnts.maxDim);
   mesh->set_family(OMEGA_H_MIXED);
 
+  // process verts
+  auto vtxInfo = simEnts.readVerts(m,nullptr);
   mesh->set_verts_type(numVtx);
-  mesh->add_coords_mix(simEnts.host_coords.write());
+  mesh->add_coords_mix(vtxInfo.coords.write());
   mesh->add_tag<ClassId>(Topo_type::vertex, "class_id", 1,
-                Read<ClassId>(simEnts.host_class_ids_vtx.write()));
+                Read<ClassId>(vtxInfo.id.write()));
   mesh->add_tag<I8>(Topo_type::vertex, "class_dim", 1,
-                    Read<I8>(simEnts.host_class_dim_vtx.write()));
+                    Read<I8>(vtxInfo.dim.write()));
 
-  simEnts.readEdges(m);
-
-  auto ev2v = Read<LO>(simEnts.host_e2v.write());
+  // process edges
+  auto edges = simEnts.readEdges(m);
+  HostWrite<LO> host_e2v(numEdges*2);
+  for (Int i = 0; i < numEdges; ++i) {
+    for (Int j = 0; j < 2; ++j) {
+      host_e2v[i*2 + j] =
+        edges.verts[static_cast<std::size_t>(i*2 + j)];
+    }
+  }
+  auto ev2v = Read<LO>(host_e2v.write());
   mesh->set_ents(Topo_type::edge, Topo_type::vertex, Adj(ev2v));
   mesh->add_tag<ClassId>(Topo_type::edge, "class_id", 1,
-                         Read<ClassId>(simEnts.host_class_ids_edge.write()));
+                         Read<ClassId>(edges.id.write()));
   mesh->add_tag<I8>(Topo_type::edge, "class_dim", 1,
-                    Read<I8>(simEnts.host_class_dim_edge.write()));
+                    Read<I8>(edges.dim.write()));
 
   //process faces
   auto mixedFaceClass = simEnts.readMixedFaces(m, info.count_tri, info.count_quad);
@@ -650,42 +631,44 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   const int numFaces = M_numFaces(m);
   const int numRegions = M_numRegions(m);
 
-  const bool hasNumbering = false;
+  const bool hasNumbering = (numbering != NULL);
 
   SimMeshEntInfo simEnts({{numVtx,numEdges,numFaces,numRegions}}, hasNumbering);
   mesh->set_dim(simEnts.maxDim);
-
-  //process verts
-  simEnts.readVerts(m,nullptr);
-
   if (info.is_simplex) {
     mesh->set_family(OMEGA_H_SIMPLEX);
   } else if (info.is_hypercube){
     mesh->set_family(OMEGA_H_HYPERCUBE);
   }
 
+  //process verts
+  auto vtxInfo = simEnts.readVerts(m,numbering);
   mesh->set_verts(numVtx);
-  mesh->add_coords(simEnts.host_coords.write());
+  mesh->add_coords(vtxInfo.coords.write());
   mesh->add_tag<ClassId>(0, "class_id", 1,
-      Read<ClassId>(simEnts.host_class_ids_vtx.write()));
+      Read<ClassId>(vtxInfo.id.write()));
   mesh->add_tag<I8>(0, "class_dim", 1,
-      Read<I8>(simEnts.host_class_dim_vtx.write()));
-  if(numbering) {
-    HostWrite<LO> host_numbering_vtx(numVtx);
-    for (int i = 0; i < numVtx; ++i)
-      host_numbering_vtx[i] = simEnts.ent_numbering[static_cast<std::size_t>(i)];
-    mesh->add_tag<LO>(0, "simNumbering", 1, Read<LO>(host_numbering_vtx.write()));
+      Read<I8>(vtxInfo.dim.write()));
+  if(hasNumbering) {
+    mesh->add_tag<LO>(0, "simNumbering", 1,
+        Read<LO>(vtxInfo.numbering.write()));
   }
 
   //process edges
-  simEnts.readEdges(m);
-
-  auto ev2v = Read<LO>(simEnts.host_e2v.write());
+  auto edges = simEnts.readEdges(m);
+  HostWrite<LO> host_e2v(numEdges*2);
+  for (Int i = 0; i < numEdges; ++i) {
+    for (Int j = 0; j < 2; ++j) {
+      host_e2v[i*2 + j] =
+        edges.verts[static_cast<std::size_t>(i*2 + j)];
+    }
+  }
+  auto ev2v = Read<LO>(host_e2v.write());
   mesh->set_ents(1, Adj(ev2v));
   mesh->add_tag<ClassId>(1, "class_id", 1,
-                Read<ClassId>(simEnts.host_class_ids_edge.write()));
+                Read<ClassId>(edges.id.write()));
   mesh->add_tag<I8>(1, "class_dim", 1,
-                    Read<I8>(simEnts.host_class_dim_edge.write()));
+                    Read<I8>(edges.dim.write()));
 
   //process faces
   if(info.is_simplex) {
