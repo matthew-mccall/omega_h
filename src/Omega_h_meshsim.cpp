@@ -50,7 +50,7 @@ struct SimMeshInfo {
 };
 
 SimMeshInfo getSimMeshInfo(pMesh m) {
-  SimMeshInfo info;
+  SimMeshInfo info = {0,0,0,0,0,0,false,false};
 
   RIter regions = M_regionIter(m);
   pRegion rgn;
