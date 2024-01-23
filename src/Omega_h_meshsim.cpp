@@ -127,7 +127,6 @@ SimMeshInfo getSimMeshInfo(pMesh m) {
 struct SimMeshEntInfo {
   int maxDim;
   bool hasNumbering;
-  std::vector<int> rgn_vertices[4];
   std::vector<int> ent_class_ids[4];
   std::vector<int> ent_class_dim[4];
   std::vector<int> ent_numbering;
@@ -222,13 +221,15 @@ struct SimMeshEntInfo {
     }
   }
 
+  struct EntClass {
+    HostWrite<LO> id;
+    HostWrite<I8> dim;
+    std::vector<int> verts;
+  };
+
   struct MixedFaceClass {
-    HostWrite<LO> triId;
-    HostWrite<I8> triDim;
-    std::vector<int> triVerts;
-    HostWrite<LO> quadId;
-    HostWrite<I8> quadDim;
-    std::vector<int> quadVerts;
+    EntClass tri;
+    EntClass quad;
   };
 
   //mixed output:
@@ -284,18 +285,12 @@ struct SimMeshEntInfo {
     }
     FIter_delete(faces);
 
-    return MixedFaceClass(
-             {host_class_ids_tri, host_class_dim_tri, face_vertices[0],
-              host_class_ids_quad, host_class_dim_quad, face_vertices[1]}
-           );
+    return MixedFaceClass{
+             EntClass{host_class_ids_tri, host_class_dim_tri, face_vertices[0]},
+             EntClass{host_class_ids_quad, host_class_dim_quad, face_vertices[1]}
+           };
   }
  
-  struct MonoFaceClass {
-    HostWrite<LO> id;
-    HostWrite<I8> dim;
-    std::vector<int> verts;
-  };
-
   //mono output:
   //==simplex==
   //tri2verts - face_vertices[0]
@@ -305,7 +300,7 @@ struct SimMeshEntInfo {
   //quad2verts - face_vertices[1]
   //host_class_ids_face
   //host_class_dim_face
-  MonoFaceClass readMonoTopoFaces(pMesh m, GO numFaces, LO vtxPerFace) {
+  EntClass readMonoTopoFaces(pMesh m, GO numFaces, LO vtxPerFace) {
     std::vector<int> face_vertices(numFaces*vtxPerFace);
     HostWrite<LO> host_face_class_ids(numFaces);
     HostWrite<I8> host_face_class_dim(numFaces);
@@ -328,8 +323,145 @@ struct SimMeshEntInfo {
       faceIdx++;
     }
     FIter_delete(faces);
-    return MonoFaceClass({host_face_class_ids, host_face_class_dim, face_vertices});
+    return EntClass({host_face_class_ids, host_face_class_dim, face_vertices});
   }
+
+  struct MixedRgnClass {
+    EntClass tet;
+    EntClass hex;
+    EntClass wedge;
+    EntClass pyramid;
+  };
+
+  MixedRgnClass readMixedTopoRegions(pMesh m,
+      LO numTets, LO numHexs,
+      LO numWedges, LO numPyramids) {
+
+    EntClass tet;
+    const auto vtxPerTet = 4;
+    tet.verts.reserve(numTets*vtxPerTet);
+    tet.id = HostWrite<LO>(numTets);
+    tet.dim = HostWrite<I8>(numTets);
+    auto tetIdx = 0;
+
+    EntClass hex;
+    const auto vtxPerHex = 8;
+    hex.verts.reserve(numHexs*vtxPerHex);
+    hex.id = HostWrite<LO>(numHexs);
+    hex.dim = HostWrite<I8>(numHexs);
+    auto hexIdx = 0;
+
+    EntClass wedge;
+    const auto vtxPerWedge = 6;
+    wedge.verts.reserve(numWedges*vtxPerWedge);
+    wedge.id = HostWrite<LO>(numWedges);
+    wedge.dim = HostWrite<I8>(numWedges);
+    auto wedgeIdx = 0;
+
+    EntClass pyramid;
+    const auto vtxPerPyramid = 5;
+    pyramid.verts.reserve(numWedges*vtxPerPyramid);
+    pyramid.id = HostWrite<LO>(numPyramids);
+    pyramid.dim = HostWrite<I8>(numPyramids);
+    auto pyramidIdx = 0;
+
+    RIter regions = M_regionIter(m);
+    pRegion rgn;
+    while ((rgn = (pRegion) RIter_next(regions))) {
+      if (R_topoType(rgn) == Rtet) {
+        pVertex vert;
+        pPList verts = R_vertices(rgn,1);
+        assert (PList_size(verts) == vtxPerTet);
+        void *iter = 0;
+        while ((vert = (pVertex) PList_next(verts, &iter))) {
+          tet.verts.push_back(EN_id(vert));
+        }
+        PList_delete(verts);
+        tet.id[tetIdx] = classId(rgn);
+        tet.dim[tetIdx] = classType(rgn);
+        tetIdx++;
+      }
+      else if (R_topoType(rgn) == Rhex) {
+        pVertex vert;
+        pPList verts = R_vertices(rgn,1);
+        assert (PList_size(verts) == vtxPerHex);
+        void *iter = 0;
+        while ((vert = (pVertex) PList_next(verts, &iter))) {
+          hex.verts.push_back(EN_id(vert));
+        }
+        PList_delete(verts);
+        hex.id[hexIdx] = classId(rgn);
+        hex.dim[hexIdx] = classType(rgn);
+        hexIdx++;
+      }
+      else if (R_topoType(rgn) == Rwedge) {
+        pVertex vert;
+        pPList verts = R_vertices(rgn,1);
+        assert (PList_size(verts) == vtxPerWedge);
+        void *iter = 0;
+        while ((vert = (pVertex) PList_next(verts, &iter))) {
+          wedge.verts.push_back(EN_id(vert));
+        }
+        PList_delete(verts);
+        wedge.id[wedgeIdx] = classId(rgn);
+        wedge.id[wedgeIdx] = classType(rgn);
+        wedgeIdx++;
+      }
+      else if (R_topoType(rgn) == Rpyramid) {
+        pVertex vert;
+        pPList verts = R_vertices(rgn,1);
+        assert (PList_size(verts) == vtxPerPyramid);
+        void *iter = 0;
+        while ((vert = (pVertex) PList_next(verts, &iter))) {
+          pyramid.verts.push_back(EN_id(vert));
+        }
+        PList_delete(verts);
+        pyramid.id[pyramidIdx] = classId(rgn);
+        pyramid.id[pyramidIdx] = classType(rgn);
+        pyramidIdx++;
+      }
+      else {
+        Omega_h_fail ("Region is not tet, hex, wedge, or pyramid \n");
+      }
+    }
+    RIter_delete(regions);
+    return MixedRgnClass({tet,hex,wedge,pyramid});
+  }
+
+  EntClass readMonoTopoRegions(pMesh m, GO numRgn, LO vtxPerRgn) {
+    assert(vtxPerRgn == 4 || vtxPerRgn == 8);
+    if(vtxPerRgn != 4 && vtxPerRgn != 8) {
+      Omega_h_fail("Mono topology 3d mesh must be all tets or all hex\n");
+    }
+
+    std::vector<int> rgn_vertices(numRgn*vtxPerRgn);
+    HostWrite<LO> rgn_class_ids(numRgn);
+    HostWrite<I8> rgn_class_dim(numRgn);
+
+    const auto rgnType = ( vtxPerRgn == 4 ) ? Rtet : Rhex;
+
+    RIter regions = M_regionIter(m);
+    pRegion rgn;
+    int rgnIdx = 0;
+    while ((rgn = (pRegion) RIter_next(regions))) {
+      assert(R_topoType(rgn) == rgnType);
+      pVertex vert;
+      pPList verts = R_vertices(rgn,1);
+      assert (PList_size(verts) == vtxPerRgn);
+      void *iter = 0;
+      while ((vert = (pVertex) PList_next(verts, &iter))) {
+        rgn_vertices.push_back(EN_id(vert));
+      }
+      PList_delete(verts);
+      rgn_class_ids[rgnIdx] = classId(rgn);
+      rgn_class_dim[rgnIdx] = classType(rgn);
+      rgnIdx++;
+    }
+    RIter_delete(regions);
+
+    return EntClass({rgn_class_ids, rgn_class_dim, rgn_vertices});
+  }
+
 
   private:
   SimMeshEntInfo();
@@ -381,9 +513,9 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
 
   auto ev2v = Read<LO>(simEnts.host_e2v.write());
   mesh->set_ents(Topo_type::edge, Topo_type::vertex, Adj(ev2v));
-  mesh->template add_tag<ClassId>(Topo_type::edge, "class_id", 1,
+  mesh->add_tag<ClassId>(Topo_type::edge, "class_id", 1,
                          Read<ClassId>(simEnts.host_class_ids_edge.write()));
-  mesh->template add_tag<I8>(Topo_type::edge, "class_dim", 1,
+  mesh->add_tag<I8>(Topo_type::edge, "class_dim", 1,
                     Read<I8>(simEnts.host_class_dim_edge.write()));
 
   //process faces
@@ -396,38 +528,115 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   for (Int i = 0; i < info.count_tri; ++i) {
     for (Int j = 0; j < 3; ++j) {
       host_tri2verts[i*3 + j] =
-          mixedFaceClass.triVerts[static_cast<std::size_t>(i*3 + j)];
+          mixedFaceClass.tri.verts[static_cast<std::size_t>(i*3 + j)];
     }
   }
   auto tri2verts = Read<LO>(host_tri2verts.write());
   auto down = reflect_down(tri2verts, edge2vert.ab2b, vert2edge,
       Topo_type::triangle, Topo_type::edge);
   mesh->set_ents(Topo_type::triangle, Topo_type::edge, down);
-  mesh->template add_tag<ClassId>(Topo_type::triangle, "class_id", 1,
-      Read<ClassId>(mixedFaceClass.triId.write()));
-  mesh->template add_tag<I8>(Topo_type::triangle, "class_dim", 1,
-      Read<I8>(mixedFaceClass.triDim.write()));
+  mesh->add_tag<ClassId>(Topo_type::triangle, "class_id", 1,
+      Read<ClassId>(mixedFaceClass.tri.id.write()));
+  mesh->add_tag<I8>(Topo_type::triangle, "class_dim", 1,
+      Read<I8>(mixedFaceClass.tri.dim.write()));
 
   //// quads
   HostWrite<LO> host_quad2verts(info.count_quad*4);
   for (Int i = 0; i < info.count_quad; ++i) {
     for (Int j = 0; j < 4; ++j) {
       host_quad2verts[i*4 + j] =
-          mixedFaceClass.quadVerts[static_cast<std::size_t>(i*4 + j)];
+          mixedFaceClass.quad.verts[static_cast<std::size_t>(i*4 + j)];
     }
   }
   auto quad2verts = Read<LO>(host_quad2verts.write());
   down = reflect_down(quad2verts, edge2vert.ab2b, vert2edge,
       Topo_type::quadrilateral, Topo_type::edge);
   mesh->set_ents(Topo_type::quadrilateral, Topo_type::edge, down);
-  mesh->template add_tag<ClassId>(Topo_type::quadrilateral, "class_id", 1,
-      Read<ClassId>(mixedFaceClass.quadId.write()));
-  mesh->template add_tag<I8>(Topo_type::quadrilateral, "class_dim", 1,
-      Read<I8>(mixedFaceClass.quadDim.write()));
+  mesh->add_tag<ClassId>(Topo_type::quadrilateral, "class_id", 1,
+      Read<ClassId>(mixedFaceClass.quad.id.write()));
+  mesh->add_tag<I8>(Topo_type::quadrilateral, "class_dim", 1,
+      Read<I8>(mixedFaceClass.quad.dim.write()));
 
-  //process regions - TODO
+  //process regions
+  if(simEnts.maxDim == 2)
+    return; //there are no regions
+
+  auto mixedRgnClass = simEnts.readMixedTopoRegions(m,
+      info.count_tet, info.count_hex,
+      info.count_wedge, info.count_pyramid);
+  auto tri2vert = mesh->ask_down(Topo_type::triangle, Topo_type::vertex);
+  auto vert2tri = mesh->ask_up(Topo_type::vertex, Topo_type::triangle);
+  auto quad2vert = mesh->ask_down(Topo_type::quadrilateral, Topo_type::vertex);
+  auto vert2quad = mesh->ask_up(Topo_type::vertex, Topo_type::quadrilateral);
+
+  /// tets
+  HostWrite<LO> host_tet2verts(info.count_tet*4);
+  for (Int i = 0; i < info.count_tet; ++i) {
+    for (Int j = 0; j < 4; ++j) {
+      host_tet2verts[i*4 + j] =
+        mixedRgnClass.tet.verts[static_cast<std::size_t>(i*4 + j)];
+    }
+  }
+  auto tet2verts = Read<LO>(host_tet2verts.write());
+  down = reflect_down(tet2verts, tri2vert.ab2b, vert2tri,
+      Topo_type::tetrahedron, Topo_type::triangle);
+  mesh->set_ents(Topo_type::tetrahedron, Topo_type::triangle, down);
+  mesh->add_tag<ClassId>(Topo_type::tetrahedron, "class_id", 1,
+      Read<ClassId>(mixedRgnClass.tet.id.write()));
+  mesh->add_tag<I8>(Topo_type::tetrahedron, "class_dim", 1,
+      Read<I8>(mixedRgnClass.tet.dim.write()));
+
+  /// hexs
+  HostWrite<LO> host_hex2verts(info.count_hex*8);
+  for (Int i = 0; i < info.count_hex; ++i) {
+    for (Int j = 0; j < 8; ++j) {
+      host_hex2verts[i*8 + j] =
+        mixedRgnClass.hex.verts[static_cast<std::size_t>(i*8 + j)];
+    }
+  }
+  auto hex2verts = Read<LO>(host_hex2verts.write());
+  down = reflect_down(hex2verts, quad2vert.ab2b, vert2quad,
+      Topo_type::hexahedron, Topo_type::quadrilateral);
+  mesh->set_ents(Topo_type::hexahedron, Topo_type::quadrilateral, down);
+  mesh->add_tag<ClassId>(Topo_type::hexahedron, "class_id", 1,
+      Read<ClassId>(mixedRgnClass.hex.id.write()));
+  mesh->add_tag<I8>(Topo_type::hexahedron, "class_dim", 1,
+      Read<I8>(mixedRgnClass.hex.dim.write()));
+
+  /// wedges
+  HostWrite<LO> host_wedge2verts(info.count_wedge*6);
+  for (Int i = 0; i < info.count_wedge; ++i) {
+    for (Int j = 0; j < 6; ++j) {
+      host_wedge2verts[i*6 + j] =
+        mixedRgnClass.wedge.verts[static_cast<std::size_t>(i*6 + j)];
+    }
+  }
+  auto wedge2verts = Read<LO>(host_wedge2verts.write());
+  down = reflect_down(wedge2verts, quad2vert.ab2b, vert2quad,
+      Topo_type::wedge, Topo_type::quadrilateral);
+  mesh->set_ents(Topo_type::wedge, Topo_type::triangle, down);
+  mesh->add_tag<ClassId>(Topo_type::wedge, "class_id", 1,
+      Read<ClassId>(mixedRgnClass.wedge.id.write()));
+  mesh->add_tag<I8>(Topo_type::wedge, "class_dim", 1,
+      Read<I8>(mixedRgnClass.wedge.dim.write()));
+
+  /// pyramids
+  HostWrite<LO> host_pyramid2verts(info.count_pyramid*5);
+  for (Int i = 0; i < info.count_pyramid; ++i) {
+    for (Int j = 0; j < 5; ++j) {
+      host_pyramid2verts[i*5 + j] =
+        mixedRgnClass.pyramid.verts[static_cast<std::size_t>(i*5 + j)];
+    }
+  }
+  auto pyramid2verts = Read<LO>(host_pyramid2verts.write());
+  down = reflect_down(pyramid2verts, tri2vert.ab2b, vert2tri,
+      Topo_type::pyramid, Topo_type::triangle);
+  mesh->set_ents(Topo_type::pyramid, Topo_type::quadrilateral, down);
+  mesh->add_tag<ClassId>(Topo_type::pyramid, "class_id", 1,
+      Read<ClassId>(mixedRgnClass.pyramid.id.write()));
+  mesh->add_tag<I8>(Topo_type::pyramid, "class_dim", 1,
+      Read<I8>(mixedRgnClass.pyramid.dim.write()));
 }
-
 
 void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   assert(info.is_simplex || info.is_hypercube);
@@ -480,14 +689,15 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
 
   //process faces
   if(info.is_simplex) {
-    auto monoFaceClass = simEnts.readMonoTopoFaces(m, info.count_tri, 3);
+    const auto vtxPerTri = 3;
+    auto entClass = simEnts.readMonoTopoFaces(m, info.count_tri, vtxPerTri);
     auto edge2vert = mesh->get_adj(1, 0);
     auto vert2edge = mesh->ask_up(0, 1);
-    HostWrite<LO> host_tri2verts(info.count_tri*3);
+    HostWrite<LO> host_tri2verts(info.count_tri*vtxPerTri);
     for (Int i = 0; i < info.count_tri; ++i) {
-      for (Int j = 0; j < 3; ++j) {
-        host_tri2verts[i*3 + j] =
-          monoFaceClass.verts[static_cast<std::size_t>(i*3 + j)];
+      for (Int j = 0; j < vtxPerTri; ++j) {
+        host_tri2verts[i*vtxPerTri + j] =
+          entClass.verts[static_cast<std::size_t>(i*vtxPerTri + j)];
       }
     }
     auto tri2verts = Read<LO>(host_tri2verts.write());
@@ -495,32 +705,76 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
                              OMEGA_H_SIMPLEX, 2, 1);
     mesh->set_ents(2, down);
     mesh->add_tag<ClassId>(2, "class_id", 1,
-                           Read<ClassId>(monoFaceClass.id.write()));
+                           Read<ClassId>(entClass.id.write()));
     mesh->add_tag<I8>(2, "class_dim", 1,
-                      Read<I8>(monoFaceClass.dim.write()));
-  }
-  else {
-    auto monoFaceClass = simEnts.readMonoTopoFaces(m, info.count_quad, 4);
+                      Read<I8>(entClass.dim.write()));
+  } else { // hypercube
+    const auto vtxPerQuad = 4;
+    auto entClass = simEnts.readMonoTopoFaces(m, info.count_quad, vtxPerQuad);
     auto edge2vert = mesh->get_adj(1, 0);
     auto vert2edge = mesh->ask_up(0, 1);
-    HostWrite<LO> host_quad2verts(info.count_quad*4);
+    HostWrite<LO> host_quad2verts(info.count_quad*vtxPerQuad);
     for (Int i = 0; i < info.count_quad; ++i) {
-      for (Int j = 0; j < 4; ++j) {
-        host_quad2verts[i*4 + j] =
-          monoFaceClass.verts[static_cast<std::size_t>(i*4 + j)];
+      for (Int j = 0; j < vtxPerQuad; ++j) {
+        host_quad2verts[i*vtxPerQuad + j] =
+          entClass.verts[static_cast<std::size_t>(i*vtxPerQuad + j)];
       }
     }
     auto quad2verts = Read<LO>(host_quad2verts.write());
     auto down = reflect_down(quad2verts, edge2vert.ab2b, vert2edge,
                         OMEGA_H_HYPERCUBE, 2, 1);
     mesh->set_ents(2, down);
-    mesh->template add_tag<ClassId>(2, "class_id", 1,
-                           Read<ClassId>(monoFaceClass.id.write()));
-    mesh->template add_tag<I8>(2, "class_dim", 1,
-                      Read<I8>(monoFaceClass.dim.write()));
+    mesh->add_tag<ClassId>(2, "class_id", 1,
+                           Read<ClassId>(entClass.id.write()));
+    mesh->add_tag<I8>(2, "class_dim", 1,
+                      Read<I8>(entClass.dim.write()));
   }
 
-  //process regions - TODO
+  //process regions
+  if(simEnts.maxDim == 2)
+    return; //there are no regions
+
+  if(info.is_simplex) {
+    const auto vtxPerTet = 4;
+    auto entClass = simEnts.readMonoTopoRegions(m, info.count_tet, vtxPerTet);
+    auto tri2vert = mesh->ask_down(2, 0);
+    auto vert2tri = mesh->ask_up(0, 2);
+    HostWrite<LO> host_tet2verts(info.count_tet*vtxPerTet);
+    for (Int i = 0; i < info.count_tet; ++i) {
+      for (Int j = 0; j < vtxPerTet; ++j) {
+        host_tet2verts[i*vtxPerTet + j] =
+          entClass.verts[static_cast<std::size_t>(i*vtxPerTet + j)];
+      }
+    }
+    auto tet2verts = Read<LO>(host_tet2verts.write());
+    auto down = reflect_down(tet2verts, tri2vert.ab2b, vert2tri,
+        OMEGA_H_SIMPLEX, 3, 2);
+    mesh->set_ents(3, down);
+    mesh->template add_tag<ClassId>(3, "class_id", 1,
+        Read<ClassId>(entClass.id.write()));
+    mesh->template add_tag<I8>(3, "class_dim", 1,
+        Read<I8>(entClass.dim.write()));
+  } else { //hypercube
+    const auto vtxPerHex = 8;
+    auto entClass = simEnts.readMonoTopoRegions(m, info.count_hex, vtxPerHex);
+    auto quad2vert = mesh->ask_down(2, 0);
+    auto vert2quad = mesh->ask_up(0, 2);
+    HostWrite<LO> host_hex2verts(info.count_hex*vtxPerHex);
+    for (Int i = 0; i < info.count_hex; ++i) {
+      for (Int j = 0; j < vtxPerHex; ++j) {
+        host_hex2verts[i*vtxPerHex + j] =
+          entClass.verts[static_cast<std::size_t>(i*vtxPerHex + j)];
+      }
+    }
+    auto hex2verts = Read<LO>(host_hex2verts.write());
+    auto down = reflect_down(hex2verts, quad2vert.ab2b, vert2quad,
+        OMEGA_H_HYPERCUBE, 3, 2);
+    mesh->set_ents(3, down);
+    mesh->template add_tag<ClassId>(3, "class_id", 1,
+        Read<ClassId>(entClass.id.write()));
+    mesh->template add_tag<I8>(3, "class_dim", 1,
+        Read<I8>(entClass.dim.write()));
+  }
 }
  
 MixedMesh readMixedImpl(filesystem::path const& mesh_fname,
