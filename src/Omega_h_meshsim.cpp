@@ -4,6 +4,7 @@
 #include "Omega_h_map.hpp"
 #include "Omega_h_vector.hpp"
 #include "Omega_h_mesh.hpp"
+#include "Omega_h_mixedMesh.hpp"
 #include "Omega_h_adj.hpp"
 
 #include "SimModel.h"
@@ -49,9 +50,9 @@ struct SimMeshInfo {
 };
 
 SimMeshInfo getSimMeshInfo(pMesh m) {
-  RIter regions = M_regionIter(m);
   SimMeshInfo info;
 
+  RIter regions = M_regionIter(m);
   pRegion rgn;
   while ((rgn = (pRegion) RIter_next(regions))) {
     if (R_topoType(rgn) == Rtet) {
@@ -123,8 +124,109 @@ SimMeshInfo getSimMeshInfo(pMesh m) {
   return info;
 }
 
+struct SimMeshEntInfo {
+  int maxDim;
+  bool hasNumbering;
+  std::vector<int> rgn_vertices[4];
+  std::vector<int> face_vertices[2];
+  std::vector<int> edge_vertices[1];
+  std::vector<int> ent_class_ids[4];
+  std::vector<int> ent_class_dim[4];
+  std::vector<int> ent_numbering;
+  HostWrite<Real> host_coords;
+  HostWrite<LO> host_class_ids_vtx;
+  HostWrite<I8> host_class_dim_vtx;
+
+  SimMeshEntInfo(std::array<int,4> numEnts, bool hasNumbering_in) {
+    hasNumbering = hasNumbering_in;
+    maxDim = getMaxDim(numEnts);
+    for(int dim=0; dim<4; dim++) {
+      ent_class_ids[dim].reserve(numEnts[dim]);
+      ent_class_dim[dim].reserve(numEnts[dim]);
+    }
+    if(hasNumbering) {
+      ent_numbering.reserve(numEnts[0]);
+    }
+    host_coords = HostWrite<Real>(numEnts[0]*maxDim);
+    host_class_ids_vtx = HostWrite<LO>(numEnts[0]);
+    host_class_dim_vtx = HostWrite<I8>(numEnts[0]);
+  }
+
+  void readVerts(pMesh m,pMeshNex numbering) {
+    VIter vertices = M_vertexIter(m);
+    pVertex vtx;
+    LO v = 0;
+    while ((vtx = (pVertex) VIter_next(vertices))) {
+      double xyz[3];
+      V_coord(vtx,xyz);
+      if( maxDim < 3 && xyz[2] != 0 )
+        Omega_h_fail("The z coordinate must be zero for a 2d mesh!\n");
+      for(int j=0; j<maxDim; j++) {
+        host_coords[v * maxDim + j] = xyz[j];
+      }
+      ent_class_ids[0].push_back(classId(vtx));
+      ent_class_dim[0].push_back(classType(vtx));
+      if(hasNumbering) {
+        ent_numbering.push_back(getNumber(numbering,vtx));
+      }
+      ++v;
+    }
+    VIter_delete(vertices);
+
+    // WHY NOT STORE DIRECTORY INTO HostWrite???
+    const int numVtx = M_numVertices(m);
+    for (int i = 0; i < numVtx; ++i) {
+      host_class_ids_vtx[i] = ent_class_ids[0][static_cast<std::size_t>(i)];
+      host_class_dim_vtx[i] = ent_class_dim[0][static_cast<std::size_t>(i)];
+    }
+  }
+
+  private:
+  SimMeshEntInfo();
+  int getMaxDim(std::array<int,4> numEnts) {
+    int max_dim;
+    if (numEnts[3]) {
+      max_dim = 3;
+    } else if (numEnts[2]) {
+      max_dim = 2;
+    } else if (numEnts[1]) {
+      max_dim = 1;
+    } else {
+      Omega_h_fail("There were no Elements of dimension higher than zero!\n");
+    }
+    return max_dim;
+  }
+};
+
+
+void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
+  assert(!info.is_simplex && !info.is_hypercube);
+
+  const int numVtx = M_numVertices(m);
+  const int numEdges = M_numEdges(m);
+  const int numFaces = M_numFaces(m);
+  const int numRegions = M_numRegions(m);
+
+  const bool hasNumbering = false;
+
+  SimMeshEntInfo simEnts({{numVtx,numEdges,numFaces,numRegions}}, hasNumbering);
+
+  simEnts.readVerts(m,nullptr);
+
+  mesh->set_dim(simEnts.maxDim);
+  mesh->set_family(OMEGA_H_MIXED);
+
+  mesh->set_verts_type(numVtx);
+  mesh->add_coords_mix(simEnts.host_coords.write());
+  mesh->add_tag<ClassId>(Topo_type::vertex, "class_id", 1,
+                Read<ClassId>(simEnts.host_class_ids_vtx.write()));
+  mesh->add_tag<I8>(Topo_type::vertex, "class_dim", 1,
+                    Read<I8>(simEnts.host_class_dim_vtx.write()));
+}
+
+
 void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
-  
+  /*
   const int numVtx = M_numVertices(m);
   const int numEdges = M_numEdges(m);
   const int numFaces = M_numFaces(m);
@@ -150,15 +252,6 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   }
 
   Int max_dim;
-  if (numRegions) {
-    max_dim = 3;
-  } else if (numFaces) {
-    max_dim = 2;
-  } else if (numEdges) {
-    max_dim = 1;
-  } else {
-    Omega_h_fail("There were no Elements of dimension higher than zero!\n");
-  }
 
   HostWrite<Real> host_coords(numVtx*max_dim);
   VIter vertices = M_vertexIter(m);
@@ -190,33 +283,33 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   }
 
   mesh->set_dim(max_dim);
-  if (is_simplex || is_hypercube) {
-    if (is_simplex) {
+  if (info.is_simplex || info.is_hypercube) {
+    if (info.is_simplex) {
       mesh->set_family(OMEGA_H_SIMPLEX);
     }
-    else if (is_hypercube){
+    else if (info.is_hypercube){
       mesh->set_family(OMEGA_H_HYPERCUBE);
     }
     mesh->set_verts(numVtx);
     mesh->add_coords(host_coords.write());
-    mesh->add_tag<ClassId>(0, "class_id", 1,
+    mesh->template add_tag<ClassId>(0, "class_id", 1,
                            Read<ClassId>(host_class_ids_vtx.write()));
-    mesh->add_tag<I8>(0, "class_dim", 1,
+    mesh->template add_tag<I8>(0, "class_dim", 1,
                       Read<I8>(host_class_dim_vtx.write()));
     if(numbering) {
       HostWrite<LO> host_numbering_vtx(numVtx);
       for (int i = 0; i < numVtx; ++i)
         host_numbering_vtx[i] = ent_numbering[static_cast<std::size_t>(i)];
-      mesh->add_tag<LO>(0, "simNumbering", 1, Read<LO>(host_numbering_vtx.write()));
+      mesh->template add_tag<LO>(0, "simNumbering", 1, Read<LO>(host_numbering_vtx.write()));
     }
   }
   else {
     mesh->set_family(OMEGA_H_MIXED);
     mesh->set_verts_type(numVtx);
     mesh->add_coords_mix(host_coords.write());
-    mesh->add_tag<ClassId>(Topo_type::vertex, "class_id", 1,
+    mesh->template add_tag<ClassId>(Topo_type::vertex, "class_id", 1,
                            Read<ClassId>(host_class_ids_vtx.write()));
-    mesh->add_tag<I8>(Topo_type::vertex, "class_dim", 1,
+    mesh->template add_tag<I8>(Topo_type::vertex, "class_dim", 1,
                       Read<I8>(host_class_dim_vtx.write()));
     if(numbering) {
       fprintf(stderr, "Warning: conversion of Simmetrix MeshNex vertex numbering "
@@ -256,18 +349,18 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     }
   }
   auto ev2v = Read<LO>(host_e2v.write());
-  if (is_simplex || is_hypercube) {
+  if (info.is_simplex || info.is_hypercube) {
     mesh->set_ents(1, Adj(ev2v));
-    mesh->add_tag<ClassId>(1, "class_id", 1,
+    mesh->template add_tag<ClassId>(1, "class_id", 1,
                            Read<ClassId>(host_class_ids_edge.write()));
-    mesh->add_tag<I8>(1, "class_dim", 1,
+    mesh->template add_tag<I8>(1, "class_dim", 1,
                       Read<I8>(host_class_dim_edge.write()));
   }
   else {
     mesh->set_ents(Topo_type::edge, Topo_type::vertex, Adj(ev2v));
-    mesh->add_tag<ClassId>(Topo_type::edge, "class_id", 1,
+    mesh->template add_tag<ClassId>(Topo_type::edge, "class_id", 1,
                            Read<ClassId>(host_class_ids_edge.write()));
-    mesh->add_tag<I8>(Topo_type::edge, "class_dim", 1,
+    mesh->template add_tag<I8>(Topo_type::edge, "class_dim", 1,
                       Read<I8>(host_class_dim_edge.write()));
   }
 
@@ -280,7 +373,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   face_class_ids[1].reserve(info.count_quad);
   face_class_dim[1].reserve(info.count_quad);
 
-  faces = M_faceIter(m);
+  FIter faces = M_faceIter(m);
+  pFace face;
   while ((face = (pFace) FIter_next(faces))) {
     if (F_numEdges(face) == 3) {
       pVertex tri_vertex;
@@ -323,7 +417,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   HostWrite<LO> host_class_ids_tri(info.count_tri);
   HostWrite<I8> host_class_dim_tri(info.count_tri);
   for (int i = 0; i < info.count_tri; ++i) {
-    host_class_ids_triinfo.[i] = face_class_ids[0][static_cast<std::size_t>(i)];
+    host_class_ids_tri[i] = face_class_ids[0][static_cast<std::size_t>(i)];
     host_class_dim_tri[i] = face_class_dim[0][static_cast<std::size_t>(i)];
   }
   HostWrite<LO> host_class_ids_quad(info.count_quad);
@@ -335,7 +429,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
 
   Adj edge2vert;
   Adj vert2edge;
-  if (is_simplex || is_hypercube) {
+  if (info.is_simplex || info.is_hypercube) {
     edge2vert = mesh->get_adj(1, 0);
     vert2edge = mesh->ask_up(0, 1);
   }
@@ -352,16 +446,16 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   }
   auto tri2verts = Read<LO>(host_tri2verts.write());
   Adj down;
-  if (is_simplex) {
+  if (info.is_simplex) {
     down = reflect_down(tri2verts, edge2vert.ab2b, vert2edge,
                         OMEGA_H_SIMPLEX, 2, 1);
     mesh->set_ents(2, down);
-    mesh->add_tag<ClassId>(2, "class_id", 1,
+    mesh->template add_tag<ClassId>(2, "class_id", 1,
                            Read<ClassId>(host_class_ids_face.write()));
-    mesh->add_tag<I8>(2, "class_dim", 1,
+    mesh->template add_tag<I8>(2, "class_dim", 1,
                       Read<I8>(host_class_dim_face.write()));
   }
-  else if (is_hypercube) {
+  else if (info.is_hypercube) {
     //empty since a quad/hex mesh has no triangles and to avoid dropping into
     //the 'else'
   }
@@ -369,9 +463,9 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     down = reflect_down(tri2verts, edge2vert.ab2b, vert2edge,
                         Topo_type::triangle, Topo_type::edge);
     mesh->set_ents(Topo_type::triangle, Topo_type::edge, down);
-    mesh->add_tag<ClassId>(Topo_type::triangle, "class_id", 1,
+    mesh->template add_tag<ClassId>(Topo_type::triangle, "class_id", 1,
                            Read<ClassId>(host_class_ids_tri.write()));
-    mesh->add_tag<I8>(Topo_type::triangle, "class_dim", 1,
+    mesh->template add_tag<I8>(Topo_type::triangle, "class_dim", 1,
                       Read<I8>(host_class_dim_tri.write()));
   }
 
@@ -384,25 +478,25 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
   }
   auto quad2verts = Read<LO>(host_quad2verts.write());
 
-  if (is_hypercube) {
+  if (info.is_hypercube) {
     down = reflect_down(quad2verts, edge2vert.ab2b, vert2edge,
                         OMEGA_H_HYPERCUBE, 2, 1);
     mesh->set_ents(2, down);
-    mesh->add_tag<ClassId>(2, "class_id", 1,
+    mesh->template add_tag<ClassId>(2, "class_id", 1,
                            Read<ClassId>(host_class_ids_face.write()));
-    mesh->add_tag<I8>(2, "class_dim", 1,
+    mesh->template add_tag<I8>(2, "class_dim", 1,
                       Read<I8>(host_class_dim_face.write()));
   }
-  else if (is_simplex) {
+  else if (info.is_simplex) {
     //empty to avoid dropping into the 'else'
   }
   else {
     down = reflect_down(quad2verts, edge2vert.ab2b, vert2edge,
                       Topo_type::quadrilateral, Topo_type::edge);
     mesh->set_ents(Topo_type::quadrilateral, Topo_type::edge, down);
-    mesh->add_tag<ClassId>(Topo_type::quadrilateral, "class_id", 1,
+    mesh->template add_tag<ClassId>(Topo_type::quadrilateral, "class_id", 1,
                            Read<ClassId>(host_class_ids_quad.write()));
-    mesh->add_tag<I8>(Topo_type::quadrilateral, "class_dim", 1,
+    mesh->template add_tag<I8>(Topo_type::quadrilateral, "class_dim", 1,
                       Read<I8>(host_class_dim_quad.write()));
   }
 
@@ -423,7 +517,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     rgn_class_ids[3].reserve(info.count_pyramid);
     rgn_class_dim[3].reserve(info.count_pyramid);
 
-    regions = M_regionIter(m);
+    RIter regions = M_regionIter(m);
+    pRegion rgn;
     while ((rgn = (pRegion) RIter_next(regions))) {
       if (R_topoType(rgn) == Rtet) {
         pVertex vert;
@@ -516,11 +611,11 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     Adj vert2tri;
     Adj quad2vert;
     Adj vert2quad;
-    if (is_simplex) {
+    if (info.is_simplex) {
       tri2vert = mesh->ask_down(2, 0);
       vert2tri = mesh->ask_up(0, 2);
     }
-    else if (is_hypercube) {
+    else if (info.is_hypercube) {
       quad2vert = mesh->ask_down(2, 0);
       vert2quad = mesh->ask_up(0, 2);
     }
@@ -539,25 +634,25 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
       }
     }
     auto tet2verts = Read<LO>(host_tet2verts.write());
-    if (is_simplex) {
+    if (info.is_simplex) {
       down = reflect_down(tet2verts, tri2vert.ab2b, vert2tri,
           OMEGA_H_SIMPLEX, 3, 2);
       mesh->set_ents(3, down);
-      mesh->add_tag<ClassId>(3, "class_id", 1,
+      mesh->template add_tag<ClassId>(3, "class_id", 1,
           Read<ClassId>(host_class_ids_rgn.write()));
-      mesh->add_tag<I8>(3, "class_dim", 1,
+      mesh->template add_tag<I8>(3, "class_dim", 1,
           Read<I8>(host_class_dim_rgn.write()));
     }
-    else if (is_hypercube) {
+    else if (info.is_hypercube) {
       //empty to avoid dropping into the 'else'
     }
     else {
       down = reflect_down(tet2verts, tri2vert.ab2b, vert2tri,
           Topo_type::tetrahedron, Topo_type::triangle);
       mesh->set_ents(Topo_type::tetrahedron, Topo_type::triangle, down);
-      mesh->add_tag<ClassId>(Topo_type::tetrahedron, "class_id", 1,
+      mesh->template add_tag<ClassId>(Topo_type::tetrahedron, "class_id", 1,
           Read<ClassId>(host_class_ids_tet.write()));
-      mesh->add_tag<I8>(Topo_type::tetrahedron, "class_dim", 1,
+      mesh->template add_tag<I8>(Topo_type::tetrahedron, "class_dim", 1,
           Read<I8>(host_class_dim_tet.write()));
     }
 
@@ -570,25 +665,25 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     }
     auto hex2verts = Read<LO>(host_hex2verts.write());
 
-    if (is_hypercube) {
+    if (info.is_hypercube) {
       down = reflect_down(hex2verts, quad2vert.ab2b, vert2quad,
           OMEGA_H_HYPERCUBE, 3, 2);
       mesh->set_ents(3, down);
-      mesh->add_tag<ClassId>(3, "class_id", 1,
+      mesh->template add_tag<ClassId>(3, "class_id", 1,
           Read<ClassId>(host_class_ids_rgn.write()));
-      mesh->add_tag<I8>(3, "class_dim", 1,
+      mesh->template add_tag<I8>(3, "class_dim", 1,
           Read<I8>(host_class_dim_rgn.write()));
     }
-    else if (is_simplex) {
+    else if (info.is_simplex) {
       //empty to avoid dropping into the 'else'
     }
     else {
       down = reflect_down(hex2verts, quad2vert.ab2b, vert2quad,
           Topo_type::hexahedron, Topo_type::quadrilateral);
       mesh->set_ents(Topo_type::hexahedron, Topo_type::quadrilateral, down);
-      mesh->add_tag<ClassId>(Topo_type::hexahedron, "class_id", 1,
+      mesh->template add_tag<ClassId>(Topo_type::hexahedron, "class_id", 1,
           Read<ClassId>(host_class_ids_hex.write()));
-      mesh->add_tag<I8>(Topo_type::hexahedron, "class_dim", 1,
+      mesh->template add_tag<I8>(Topo_type::hexahedron, "class_dim", 1,
           Read<I8>(host_class_dim_hex.write()));
     }
 
@@ -602,17 +697,17 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     auto wedge2verts = Read<LO>(host_wedge2verts.write());
     down = reflect_down(wedge2verts, quad2vert.ab2b, vert2quad,
         Topo_type::wedge, Topo_type::quadrilateral);
-    if ((!is_simplex) && (!is_hypercube)) {
+    if ((!info.is_simplex) && (!info.is_hypercube)) {
       mesh->set_ents(Topo_type::wedge, Topo_type::quadrilateral, down);
     }
 
     down = reflect_down(wedge2verts, tri2vert.ab2b, vert2tri,
         Topo_type::wedge, Topo_type::triangle);
-    if ((!is_simplex) && (!is_hypercube)) {
+    if ((!info.is_simplex) && (!info.is_hypercube)) {
       mesh->set_ents(Topo_type::wedge, Topo_type::triangle, down);
-      mesh->add_tag<ClassId>(Topo_type::wedge, "class_id", 1,
+      mesh->template add_tag<ClassId>(Topo_type::wedge, "class_id", 1,
           Read<ClassId>(host_class_ids_wedge.write()));
-      mesh->add_tag<I8>(Topo_type::wedge, "class_dim", 1,
+      mesh->template add_tag<I8>(Topo_type::wedge, "class_dim", 1,
           Read<I8>(host_class_dim_wedge.write()));
     }
 
@@ -626,22 +721,45 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     auto pyramid2verts = Read<LO>(host_pyramid2verts.write());
     down = reflect_down(pyramid2verts, tri2vert.ab2b, vert2tri,
         Topo_type::pyramid, Topo_type::triangle);
-    if ((!is_simplex) && (!is_hypercube)) {
+    if ((!info.is_simplex) && (!info.is_hypercube)) {
       mesh->set_ents(Topo_type::pyramid, Topo_type::triangle, down);
     }
 
     down = reflect_down(pyramid2verts, quad2vert.ab2b, vert2quad,
         Topo_type::pyramid, Topo_type::quadrilateral);
-    if ((!is_simplex) && (!is_hypercube)) {
+    if ((!info.is_simplex) && (!info.is_hypercube)) {
       mesh->set_ents(Topo_type::pyramid, Topo_type::quadrilateral, down);
-      mesh->add_tag<ClassId>(Topo_type::pyramid, "class_id", 1,
+      mesh->template add_tag<ClassId>(Topo_type::pyramid, "class_id", 1,
           Read<ClassId>(host_class_ids_pyramid.write()));
-      mesh->add_tag<I8>(Topo_type::pyramid, "class_dim", 1,
+      mesh->template add_tag<I8>(Topo_type::pyramid, "class_dim", 1,
           Read<I8>(host_class_dim_pyramid.write()));
     }
   }
+  */
 
   return;
+}
+
+MixedMesh readMixedImpl(filesystem::path const& mesh_fname,
+    filesystem::path const& mdl_fname,
+    CommPtr comm) {
+  SimModel_start();
+  Sim_readLicenseFile(NULL);
+  SimDiscrete_start(0);
+  pNativeModel nm = NULL;
+  pProgress p = NULL;
+  pGModel g = GM_load(mdl_fname.c_str(), nm, p);
+  pMesh m = M_load(mesh_fname.c_str(), g, p);
+  auto simMeshInfo = getSimMeshInfo(m);
+  auto mesh = MixedMesh(comm->library());
+  mesh.set_comm(comm);
+  mesh.set_parting(OMEGA_H_ELEM_BASED);
+  meshsim::readMixed_internal(m, &mesh, simMeshInfo);
+  M_release(m);
+  GM_release(g);
+  SimDiscrete_stop(0);
+  SimModel_stop();
+  return mesh;
 }
 
 Mesh readImpl(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
@@ -676,6 +794,11 @@ Mesh read(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
 Mesh read(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
     CommPtr comm) {
   return readImpl(mesh_fname, mdl_fname, std::string(""), comm);
+}
+
+MixedMesh readMixed(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
+    CommPtr comm) {
+  return readMixedImpl(mesh_fname, mdl_fname, comm);
 }
 
 }  // namespace meshsim

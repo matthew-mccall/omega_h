@@ -161,7 +161,7 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
                         "/localconcave_tutorial_mixedvol_geomsim3-case1.sms";
   std::string model_in = std::string(mesh_dir) +
                          "/localconcave_tutorial_mixedvol_geomsim3.smd";
-  auto mesh = meshsim::read(mesh_in, model_in, comm);
+  auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
@@ -170,7 +170,7 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
             "/localconcave_tutorial_mixedvol_geomsim2-case1.sms";
   model_in = std::string(mesh_dir) +
              "/localconcave_tutorial_mixedvol_geomsim2.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
@@ -179,7 +179,7 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
             "/localconcave_tutorial_mixedvol_geomsim-case1.sms";
   model_in = std::string(mesh_dir) +
              "/localconcave_tutorial_mixedvol_geomsim.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
@@ -188,7 +188,7 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
             "/localconcave_tutorial-case1_v7.sms";
   model_in = std::string(mesh_dir) +
              "/localconcave_tutorial_geomsim.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
 
 }
 
@@ -206,35 +206,35 @@ int main(int argc, char** argv) {
   //TODO: add support for writing mixed meshes containing tags(class info) to vtk
   std::string mesh_in = std::string(mesh_dir) + "/Example_hex.sms";
   std::string model_in = std::string(mesh_dir) + "/Example_hex.smd";
-  auto mesh = meshsim::read(mesh_in, model_in, comm);
+  auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
 
   mesh_in = std::string(mesh_dir) + "/Example_wedge.sms";
   model_in = std::string(mesh_dir) + "/Example_wedge.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
   mesh_in = std::string(mesh_dir) + "/Example_pym.sms";
   model_in = std::string(mesh_dir) + "/Example_pym.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
   mesh_in = std::string(mesh_dir) + "/Example_tet_wedge.sms";
   model_in = std::string(mesh_dir) + "/Example_tet_wedge.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
   mesh_in = std::string(mesh_dir) + "/Example_pym_hex.sms";
   model_in = std::string(mesh_dir) + "/Example_pym_hex.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
   mesh_in = std::string(mesh_dir) + "/Example_allType.sms";
   model_in = std::string(mesh_dir) + "/Example_allType.smd";
-  mesh = meshsim::read(mesh_in, model_in, comm);
+  mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
