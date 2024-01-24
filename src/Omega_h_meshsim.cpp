@@ -580,6 +580,9 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   auto wedge2verts = Read<LO>(host_wedge2verts.write());
   down = reflect_down(wedge2verts, quad2vert.ab2b, vert2quad,
       Topo_type::wedge, Topo_type::quadrilateral);
+  mesh->set_ents(Topo_type::wedge, Topo_type::quadrilateral, down);
+  down = reflect_down(wedge2verts, tri2vert.ab2b, vert2tri,
+      Topo_type::wedge, Topo_type::triangle);
   mesh->set_ents(Topo_type::wedge, Topo_type::triangle, down);
   mesh->add_tag<ClassId>(Topo_type::wedge, "class_id", 1,
       Read<ClassId>(mixedRgnClass.wedge.id.write()));
