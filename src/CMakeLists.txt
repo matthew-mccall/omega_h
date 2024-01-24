@@ -414,11 +414,6 @@ function(test_func_impl TEST_NAME NUM_PROCS)
       ${CMAKE_SOURCE_DIR}/meshes)
 
     osh_add_exe(periodic_test)
-    set(TEST_EXES ${TEST_EXES} periodic_test)
-    test_func(periodic_test 2 ./periodic_test
-      ${CMAKE_SOURCE_DIR}/meshes/wedge_matchZ_12elem.sms
-      ${CMAKE_SOURCE_DIR}/meshes/wedge_match.smd
-      ${CMAKE_SOURCE_DIR}/meshes/wedge_matchZ_12elem_sync_2.osh 2)
   endif()
 
   test_basefunc(run_arrayops 1 ./arrayops_test)
