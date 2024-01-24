@@ -188,7 +188,7 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
             "/localconcave_tutorial-case1_v7.sms";
   model_in = std::string(mesh_dir) +
              "/localconcave_tutorial_geomsim.smd";
-  mesh = meshsim::readMixed(mesh_in, model_in, comm);
+  auto simplexMesh = meshsim::read(mesh_in, model_in, comm);
 
 }
 
@@ -204,13 +204,15 @@ int main(int argc, char** argv) {
 
   /* Generate these meshes using the mixed_writeMesh ctest */
   //TODO: add support for writing mixed meshes containing tags(class info) to vtk
+  {
   std::string mesh_in = std::string(mesh_dir) + "/Example_hex.sms";
   std::string model_in = std::string(mesh_dir) + "/Example_hex.smd";
-  auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
+  auto mesh = meshsim::read(mesh_in, model_in, comm);
+  }
 
-  mesh_in = std::string(mesh_dir) + "/Example_wedge.sms";
-  model_in = std::string(mesh_dir) + "/Example_wedge.smd";
-  mesh = meshsim::readMixed(mesh_in, model_in, comm);
+  std::string mesh_in = std::string(mesh_dir) + "/Example_wedge.sms";
+  std::string model_in = std::string(mesh_dir) + "/Example_wedge.smd";
+  auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
 
