@@ -226,7 +226,7 @@ bool MixedMesh::has_adj(Topo_type from_type, Topo_type to_type) const {
 
 Adj MixedMesh::get_adj(Topo_type from_type, Topo_type to_type) const {
   check_type2(from_type);
-  check_type2(from_type);
+  check_type2(to_type);
   OMEGA_H_CHECK(has_adj(from_type, to_type));
   return *(adjs_type_[int(from_type)][int(to_type)]);
 }
