@@ -600,6 +600,9 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   auto pyramid2verts = Read<LO>(host_pyramid2verts.write());
   down = reflect_down(pyramid2verts, tri2vert.ab2b, vert2tri,
       Topo_type::pyramid, Topo_type::triangle);
+  mesh->set_ents(Topo_type::pyramid, Topo_type::triangle, down);
+  down = reflect_down(pyramid2verts, quad2vert.ab2b, vert2quad,
+      Topo_type::pyramid, Topo_type::quadrilateral);
   mesh->set_ents(Topo_type::pyramid, Topo_type::quadrilateral, down);
   mesh->add_tag<ClassId>(Topo_type::pyramid, "class_id", 1,
       Read<ClassId>(mixedRgnClass.pyramid.id.write()));
