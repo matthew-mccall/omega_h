@@ -437,14 +437,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
 
   // process edges
   auto edges = simEnts.readEdges(m);
-  HostWrite<LO> host_e2v(numEdges*2);
-  for (Int i = 0; i < numEdges; ++i) {
-    for (Int j = 0; j < 2; ++j) {
-      host_e2v[i*2 + j] =
-        edges.verts[static_cast<std::size_t>(i*2 + j)];
-    }
-  }
-  auto ev2v = Read<LO>(host_e2v.write());
+  auto ev2v = Read<LO>(edges.verts.write());
   mesh->set_ents(Topo_type::edge, Topo_type::vertex, Adj(ev2v));
   mesh->add_tag<ClassId>(Topo_type::edge, "class_id", 1,
                          Read<ClassId>(edges.id.write()));
@@ -457,14 +450,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   auto vert2edge = mesh->ask_up(Topo_type::vertex, Topo_type::edge);
 
   //// tris
-  HostWrite<LO> host_tri2verts(info.count_tri*3);
-  for (Int i = 0; i < info.count_tri; ++i) {
-    for (Int j = 0; j < 3; ++j) {
-      host_tri2verts[i*3 + j] =
-          mixedFaceClass.tri.verts[static_cast<std::size_t>(i*3 + j)];
-    }
-  }
-  auto tri2verts = Read<LO>(host_tri2verts.write());
+  auto tri2verts = Read<LO>(mixedFaceClass.tri.verts.write());
   auto down = reflect_down(tri2verts, edge2vert.ab2b, vert2edge,
       Topo_type::triangle, Topo_type::edge);
   mesh->set_ents(Topo_type::triangle, Topo_type::edge, down);
@@ -474,14 +460,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
       Read<I8>(mixedFaceClass.tri.dim.write()));
 
   //// quads
-  HostWrite<LO> host_quad2verts(info.count_quad*4);
-  for (Int i = 0; i < info.count_quad; ++i) {
-    for (Int j = 0; j < 4; ++j) {
-      host_quad2verts[i*4 + j] =
-          mixedFaceClass.quad.verts[static_cast<std::size_t>(i*4 + j)];
-    }
-  }
-  auto quad2verts = Read<LO>(host_quad2verts.write());
+  auto quad2verts = Read<LO>(mixedFaceClass.quad.verts.write());
   down = reflect_down(quad2verts, edge2vert.ab2b, vert2edge,
       Topo_type::quadrilateral, Topo_type::edge);
   mesh->set_ents(Topo_type::quadrilateral, Topo_type::edge, down);
@@ -503,14 +482,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   auto vert2quad = mesh->ask_up(Topo_type::vertex, Topo_type::quadrilateral);
 
   /// tets
-  HostWrite<LO> host_tet2verts(info.count_tet*4);
-  for (Int i = 0; i < info.count_tet; ++i) {
-    for (Int j = 0; j < 4; ++j) {
-      host_tet2verts[i*4 + j] =
-        mixedRgnClass.tet.verts[static_cast<std::size_t>(i*4 + j)];
-    }
-  }
-  auto tet2verts = Read<LO>(host_tet2verts.write());
+  auto tet2verts = Read<LO>(mixedRgnClass.tet.verts.write());
   down = reflect_down(tet2verts, tri2vert.ab2b, vert2tri,
       Topo_type::tetrahedron, Topo_type::triangle);
   mesh->set_ents(Topo_type::tetrahedron, Topo_type::triangle, down);
@@ -520,14 +492,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
       Read<I8>(mixedRgnClass.tet.dim.write()));
 
   /// hexs
-  HostWrite<LO> host_hex2verts(info.count_hex*8);
-  for (Int i = 0; i < info.count_hex; ++i) {
-    for (Int j = 0; j < 8; ++j) {
-      host_hex2verts[i*8 + j] =
-        mixedRgnClass.hex.verts[static_cast<std::size_t>(i*8 + j)];
-    }
-  }
-  auto hex2verts = Read<LO>(host_hex2verts.write());
+  auto hex2verts = Read<LO>(mixedRgnClass.hex.verts.write());
   down = reflect_down(hex2verts, quad2vert.ab2b, vert2quad,
       Topo_type::hexahedron, Topo_type::quadrilateral);
   mesh->set_ents(Topo_type::hexahedron, Topo_type::quadrilateral, down);
@@ -537,14 +502,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
       Read<I8>(mixedRgnClass.hex.dim.write()));
 
   /// wedges
-  HostWrite<LO> host_wedge2verts(info.count_wedge*6);
-  for (Int i = 0; i < info.count_wedge; ++i) {
-    for (Int j = 0; j < 6; ++j) {
-      host_wedge2verts[i*6 + j] =
-        mixedRgnClass.wedge.verts[static_cast<std::size_t>(i*6 + j)];
-    }
-  }
-  auto wedge2verts = Read<LO>(host_wedge2verts.write());
+  auto wedge2verts = Read<LO>(mixedRgnClass.wedge.verts.write());
   down = reflect_down(wedge2verts, quad2vert.ab2b, vert2quad,
       Topo_type::wedge, Topo_type::quadrilateral);
   mesh->set_ents(Topo_type::wedge, Topo_type::quadrilateral, down);
@@ -557,14 +515,7 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
       Read<I8>(mixedRgnClass.wedge.dim.write()));
 
   /// pyramids
-  HostWrite<LO> host_pyramid2verts(info.count_pyramid*5);
-  for (Int i = 0; i < info.count_pyramid; ++i) {
-    for (Int j = 0; j < 5; ++j) {
-      host_pyramid2verts[i*5 + j] =
-        mixedRgnClass.pyramid.verts[static_cast<std::size_t>(i*5 + j)];
-    }
-  }
-  auto pyramid2verts = Read<LO>(host_pyramid2verts.write());
+  auto pyramid2verts = Read<LO>(mixedRgnClass.pyramid.verts.write());
   down = reflect_down(pyramid2verts, tri2vert.ab2b, vert2tri,
       Topo_type::pyramid, Topo_type::triangle);
   mesh->set_ents(Topo_type::pyramid, Topo_type::triangle, down);
@@ -614,14 +565,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
 
   //process edges
   auto edges = simEnts.readEdges(m);
-  HostWrite<LO> host_e2v(numEdges*2);
-  for (Int i = 0; i < numEdges; ++i) {
-    for (Int j = 0; j < 2; ++j) {
-      host_e2v[i*2 + j] =
-        edges.verts[static_cast<std::size_t>(i*2 + j)];
-    }
-  }
-  auto ev2v = Read<LO>(host_e2v.write());
+  auto ev2v = Read<LO>(edges.verts.write());
   mesh->set_ents(1, Adj(ev2v));
   mesh->add_tag<ClassId>(1, "class_id", 1,
                 Read<ClassId>(edges.id.write()));
@@ -634,14 +578,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     auto entClass = simEnts.readMonoTopoFaces(m, info.count_tri, vtxPerTri);
     auto edge2vert = mesh->get_adj(1, 0);
     auto vert2edge = mesh->ask_up(0, 1);
-    HostWrite<LO> host_tri2verts(info.count_tri*vtxPerTri);
-    for (Int i = 0; i < info.count_tri; ++i) {
-      for (Int j = 0; j < vtxPerTri; ++j) {
-        host_tri2verts[i*vtxPerTri + j] =
-          entClass.verts[static_cast<std::size_t>(i*vtxPerTri + j)];
-      }
-    }
-    auto tri2verts = Read<LO>(host_tri2verts.write());
+    auto tri2verts = Read<LO>(entClass.verts.write());
     auto down = reflect_down(tri2verts, edge2vert.ab2b, vert2edge,
                              OMEGA_H_SIMPLEX, 2, 1);
     mesh->set_ents(2, down);
@@ -654,14 +591,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     auto entClass = simEnts.readMonoTopoFaces(m, info.count_quad, vtxPerQuad);
     auto edge2vert = mesh->get_adj(1, 0);
     auto vert2edge = mesh->ask_up(0, 1);
-    HostWrite<LO> host_quad2verts(info.count_quad*vtxPerQuad);
-    for (Int i = 0; i < info.count_quad; ++i) {
-      for (Int j = 0; j < vtxPerQuad; ++j) {
-        host_quad2verts[i*vtxPerQuad + j] =
-          entClass.verts[static_cast<std::size_t>(i*vtxPerQuad + j)];
-      }
-    }
-    auto quad2verts = Read<LO>(host_quad2verts.write());
+    auto quad2verts = Read<LO>(entClass.verts.write());
     auto down = reflect_down(quad2verts, edge2vert.ab2b, vert2edge,
                         OMEGA_H_HYPERCUBE, 2, 1);
     mesh->set_ents(2, down);
@@ -680,14 +610,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     auto entClass = simEnts.readMonoTopoRegions(m, info.count_tet, vtxPerTet);
     auto tri2vert = mesh->ask_down(2, 0);
     auto vert2tri = mesh->ask_up(0, 2);
-    HostWrite<LO> host_tet2verts(info.count_tet*vtxPerTet);
-    for (Int i = 0; i < info.count_tet; ++i) {
-      for (Int j = 0; j < vtxPerTet; ++j) {
-        host_tet2verts[i*vtxPerTet + j] =
-          entClass.verts[static_cast<std::size_t>(i*vtxPerTet + j)];
-      }
-    }
-    auto tet2verts = Read<LO>(host_tet2verts.write());
+    auto tet2verts = Read<LO>(entClass.verts.write());
     auto down = reflect_down(tet2verts, tri2vert.ab2b, vert2tri,
         OMEGA_H_SIMPLEX, 3, 2);
     mesh->set_ents(3, down);
@@ -700,14 +623,7 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info) {
     auto entClass = simEnts.readMonoTopoRegions(m, info.count_hex, vtxPerHex);
     auto quad2vert = mesh->ask_down(2, 0);
     auto vert2quad = mesh->ask_up(0, 2);
-    HostWrite<LO> host_hex2verts(info.count_hex*vtxPerHex);
-    for (Int i = 0; i < info.count_hex; ++i) {
-      for (Int j = 0; j < vtxPerHex; ++j) {
-        host_hex2verts[i*vtxPerHex + j] =
-          entClass.verts[static_cast<std::size_t>(i*vtxPerHex + j)];
-      }
-    }
-    auto hex2verts = Read<LO>(host_hex2verts.write());
+    auto hex2verts = Read<LO>(entClass.verts.write());
     auto down = reflect_down(hex2verts, quad2vert.ab2b, vert2quad,
         OMEGA_H_HYPERCUBE, 3, 2);
     mesh->set_ents(3, down);
