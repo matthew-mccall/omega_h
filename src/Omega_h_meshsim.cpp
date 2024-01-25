@@ -136,7 +136,7 @@ struct SimMeshEntInfo {
   struct EntClass {
     HostWrite<LO> id;
     HostWrite<I8> dim;
-    std::vector<int> verts;
+    HostWrite<LO> verts;
   };
 
   struct VertexInfo {
@@ -177,23 +177,35 @@ struct SimMeshEntInfo {
     return vtxInfo;
   }
 
+  void setVtxIds(pPList listVerts, const int vtxPerEnt, const int entIdx, HostWrite<LO>& verts) {
+    assert (PList_size(listVerts) == vtxPerEnt);
+    void *iter = 0;
+    int i = 0;
+    pVertex vtx;
+    while ((vtx = (pVertex) PList_next(listVerts, &iter))) {
+      verts[entIdx*vtxPerEnt+i] = EN_id(vtx);
+      i++;
+    }
+    PList_delete(listVerts);
+  }
+
   EntClass readEdges(pMesh m) {
     const int numEdges = M_numEdges(m);
     EntClass edgeClass;
-    edgeClass.verts.reserve(numEdges*2);
+    edgeClass.verts = HostWrite<LO>(numEdges*2);
     edgeClass.id = HostWrite<LO>(numEdges);
     edgeClass.dim = HostWrite<I8>(numEdges);
+    const int vtxPerEdge = 2;
     auto edgeIdx = 0;
     
     EIter edges = M_edgeIter(m);
     pEdge edge;
     while ((edge = (pEdge) EIter_next(edges))) {
-      double xyz[3];
-      for(int j=0; j<2; ++j) {
-        pVertex vtx = E_vertex(edge,j);
-        edgeClass.verts.push_back(EN_id(vtx));
-        V_coord(vtx,xyz);
-      }
+      pPList verts = PList_new();
+      //there is no E_vertices(edge) function that returns a list
+      verts = PList_append(verts, E_vertex(edge,0));
+      verts = PList_append(verts, E_vertex(edge,1));
+      setVtxIds(verts, vtxPerEdge, edgeIdx, edgeClass.verts);
       edgeClass.id[edgeIdx] = classId(edge);
       edgeClass.dim[edgeIdx] = classType(edge);
       edgeIdx++;
@@ -202,7 +214,6 @@ struct SimMeshEntInfo {
     return edgeClass;
   }
 
-
   struct MixedFaceClass {
     EntClass tri;
     EntClass quad;
@@ -210,42 +221,34 @@ struct SimMeshEntInfo {
 
   MixedFaceClass readMixedFaces(pMesh m, GO count_tri, GO count_quad) {
     EntClass tri;
-    tri.verts.reserve(count_tri*3);
+    tri.verts = HostWrite<LO>(count_tri*3);
     tri.id = HostWrite<LO>(count_tri);
     tri.dim = HostWrite<I8>(count_tri);
+    const int edgePerTri = 3;
+    const int vtxPerTri = 3;
     int triIdx = 0;
 
     EntClass quad;
-    quad.verts.reserve(count_quad*4);
+    quad.verts = HostWrite<LO>(count_quad*4);
     quad.id = HostWrite<LO>(count_quad);
     quad.dim = HostWrite<I8>(count_quad);
+    const int edgePerQuad = 4;
+    const int vtxPerQuad = 4;
     int quadIdx = 0;
 
     FIter faces = M_faceIter(m);
     pFace face;
     while ((face = (pFace) FIter_next(faces))) {
-      if (F_numEdges(face) == 3) {
-        pVertex tri_vertex;
-        pPList tri_vertices = F_vertices(face,1);
-        assert (PList_size(tri_vertices) == 3);
-        void *iter = 0;
-        while ((tri_vertex = (pVertex) PList_next(tri_vertices, &iter))) {
-          tri.verts.push_back(EN_id(tri_vertex));
-        }
-        PList_delete(tri_vertices);
+      if (F_numEdges(face) == edgePerTri) {
+        pPList verts = F_vertices(face,1);
+        setVtxIds(verts, vtxPerTri, triIdx, tri.verts);
         tri.id[triIdx] = classId(face);
         tri.dim[triIdx] = classType(face);
         triIdx++;
       }
-      else if (F_numEdges(face) == 4) {
-        pVertex quad_vertex;
-        pPList quad_vertices = F_vertices(face,1);
-        assert (PList_size(quad_vertices) == 4);
-        void *iter = 0;
-        while ((quad_vertex = (pVertex) PList_next(quad_vertices, &iter))) {
-          quad.verts.push_back(EN_id(quad_vertex));
-        }
-        PList_delete(quad_vertices);
+      else if (F_numEdges(face) == edgePerQuad) {
+        pPList verts = F_vertices(face,1);
+        setVtxIds(verts, vtxPerQuad, quadIdx, quad.verts);
         quad.id[quadIdx] = classId(face);
         quad.dim[quadIdx] = classType(face);
         quadIdx++;
@@ -261,7 +264,7 @@ struct SimMeshEntInfo {
  
   EntClass readMonoTopoFaces(pMesh m, GO numFaces, LO vtxPerFace) {
     EntClass ents;
-    ents.verts.reserve(numFaces*vtxPerFace);
+    ents.verts = HostWrite<LO>(numFaces*vtxPerFace);
     ents.id = HostWrite<LO>(numFaces);
     ents.dim = HostWrite<I8>(numFaces);
     int faceIdx = 0;
@@ -270,14 +273,8 @@ struct SimMeshEntInfo {
     pFace face;
     while ((face = (pFace) FIter_next(faces))) {
       assert(F_numEdges(face) == vtxPerFace);
-      pVertex vertex;
-      pPList vertices = F_vertices(face,1);
-      assert (PList_size(vertices) == vtxPerFace);
-      void *iter = 0;
-      while ((vertex = (pVertex) PList_next(vertices, &iter))) {
-        ents.verts.push_back(EN_id(vertex));
-      }
-      PList_delete(vertices);
+      pPList verts = F_vertices(face,1);
+      setVtxIds(verts, vtxPerFace, faceIdx, ents.verts);
       ents.id[faceIdx] = classId(face);
       ents.dim[faceIdx] = classType(face);
       faceIdx++;
@@ -299,28 +296,28 @@ struct SimMeshEntInfo {
 
     EntClass tet;
     const auto vtxPerTet = 4;
-    tet.verts.reserve(numTets*vtxPerTet);
+    tet.verts = HostWrite<LO>(numTets*vtxPerTet);
     tet.id = HostWrite<LO>(numTets);
     tet.dim = HostWrite<I8>(numTets);
     auto tetIdx = 0;
 
     EntClass hex;
     const auto vtxPerHex = 8;
-    hex.verts.reserve(numHexs*vtxPerHex);
+    hex.verts = HostWrite<LO>(numHexs*vtxPerHex);
     hex.id = HostWrite<LO>(numHexs);
     hex.dim = HostWrite<I8>(numHexs);
     auto hexIdx = 0;
 
     EntClass wedge;
     const auto vtxPerWedge = 6;
-    wedge.verts.reserve(numWedges*vtxPerWedge);
+    wedge.verts = HostWrite<LO>(numWedges*vtxPerWedge);
     wedge.id = HostWrite<LO>(numWedges);
     wedge.dim = HostWrite<I8>(numWedges);
     auto wedgeIdx = 0;
 
     EntClass pyramid;
     const auto vtxPerPyramid = 5;
-    pyramid.verts.reserve(numWedges*vtxPerPyramid);
+    pyramid.verts = HostWrite<LO>(numPyramids*vtxPerPyramid);
     pyramid.id = HostWrite<LO>(numPyramids);
     pyramid.dim = HostWrite<I8>(numPyramids);
     auto pyramidIdx = 0;
@@ -329,53 +326,29 @@ struct SimMeshEntInfo {
     pRegion rgn;
     while ((rgn = (pRegion) RIter_next(regions))) {
       if (R_topoType(rgn) == Rtet) {
-        pVertex vert;
         pPList verts = R_vertices(rgn,1);
-        assert (PList_size(verts) == vtxPerTet);
-        void *iter = 0;
-        while ((vert = (pVertex) PList_next(verts, &iter))) {
-          tet.verts.push_back(EN_id(vert));
-        }
-        PList_delete(verts);
+        setVtxIds(verts, vtxPerTet, tetIdx, tet.verts);
         tet.id[tetIdx] = classId(rgn);
         tet.dim[tetIdx] = classType(rgn);
         tetIdx++;
       }
       else if (R_topoType(rgn) == Rhex) {
-        pVertex vert;
         pPList verts = R_vertices(rgn,1);
-        assert (PList_size(verts) == vtxPerHex);
-        void *iter = 0;
-        while ((vert = (pVertex) PList_next(verts, &iter))) {
-          hex.verts.push_back(EN_id(vert));
-        }
-        PList_delete(verts);
+        setVtxIds(verts, vtxPerHex, hexIdx, hex.verts);
         hex.id[hexIdx] = classId(rgn);
         hex.dim[hexIdx] = classType(rgn);
         hexIdx++;
       }
       else if (R_topoType(rgn) == Rwedge) {
-        pVertex vert;
         pPList verts = R_vertices(rgn,1);
-        assert (PList_size(verts) == vtxPerWedge);
-        void *iter = 0;
-        while ((vert = (pVertex) PList_next(verts, &iter))) {
-          wedge.verts.push_back(EN_id(vert));
-        }
-        PList_delete(verts);
+        setVtxIds(verts, vtxPerWedge, wedgeIdx, wedge.verts);
         wedge.id[wedgeIdx] = classId(rgn);
         wedge.dim[wedgeIdx] = classType(rgn);
         wedgeIdx++;
       }
       else if (R_topoType(rgn) == Rpyramid) {
-        pVertex vert;
         pPList verts = R_vertices(rgn,1);
-        assert (PList_size(verts) == vtxPerPyramid);
-        void *iter = 0;
-        while ((vert = (pVertex) PList_next(verts, &iter))) {
-          pyramid.verts.push_back(EN_id(vert));
-        }
-        PList_delete(verts);
+        setVtxIds(verts, vtxPerPyramid, pyramidIdx, pyramid.verts);
         pyramid.id[pyramidIdx] = classId(rgn);
         pyramid.dim[pyramidIdx] = classType(rgn);
         pyramidIdx++;
@@ -394,10 +367,10 @@ struct SimMeshEntInfo {
       Omega_h_fail("Mono topology 3d mesh must be all tets or all hex\n");
     }
 
-    std::vector<int> rgn_vertices;
-    rgn_vertices.reserve(numRgn*vtxPerRgn);
-    HostWrite<LO> rgn_class_ids(numRgn);
-    HostWrite<I8> rgn_class_dim(numRgn);
+    EntClass rgnClass;
+    rgnClass.verts = HostWrite<LO>(numRgn*vtxPerRgn);
+    rgnClass.id = HostWrite<LO>(numRgn);
+    rgnClass.dim = HostWrite<I8>(numRgn);
 
     const auto rgnType = ( vtxPerRgn == 4 ) ? Rtet : Rhex;
 
@@ -406,21 +379,15 @@ struct SimMeshEntInfo {
     int rgnIdx = 0;
     while ((rgn = (pRegion) RIter_next(regions))) {
       assert(R_topoType(rgn) == rgnType);
-      pVertex vert;
       pPList verts = R_vertices(rgn,1);
-      assert (PList_size(verts) == vtxPerRgn);
-      void *iter = 0;
-      while ((vert = (pVertex) PList_next(verts, &iter))) {
-        rgn_vertices.push_back(EN_id(vert));
-      }
-      PList_delete(verts);
-      rgn_class_ids[rgnIdx] = classId(rgn);
-      rgn_class_dim[rgnIdx] = classType(rgn);
+      setVtxIds(verts, vtxPerRgn, rgnIdx, rgnClass.verts);
+      rgnClass.id[rgnIdx] = classId(rgn);
+      rgnClass.dim[rgnIdx] = classType(rgn);
       rgnIdx++;
     }
     RIter_delete(regions);
 
-    return EntClass({rgn_class_ids, rgn_class_dim, rgn_vertices});
+    return rgnClass;
   }
 
 
