@@ -163,8 +163,6 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
   auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  auto maxType = Topo_type::pyramid;
-  Omega_h::vtk::write_vtu("./" + name + ".vtu", &mesh, maxType);
 
   //tet=1246, hex=8, wedge=0, pyramid=229
   name = std::string("/localconcave_tutorial_mixedvol_geomsim2");
@@ -173,7 +171,6 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  Omega_h::vtk::write_vtu("./" + name + ".vtu", &mesh, maxType);
 
   //tet=3274, hex=68, wedge=0, pyramid=171
   name = std::string("/localconcave_tutorial_mixedvol_geomsim");
@@ -182,7 +179,6 @@ void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  Omega_h::vtk::write_vtu("./" + name + ".vtu", &mesh, maxType);
 
   //tet=4437, hex=0, wedge=0, pyramid=0
   mesh_in = std::string(mesh_dir) +
@@ -216,38 +212,30 @@ int main(int argc, char** argv) {
   auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  Omega_h::vtk::write_vtu("wedges.vtu", &mesh, Topo_type::wedge);
 
   mesh_in = std::string(mesh_dir) + "/Example_pym.sms";
   model_in = std::string(mesh_dir) + "/Example_pym.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  Omega_h::vtk::write_vtu("pyramids.vtu", &mesh, Topo_type::pyramid);
 
   mesh_in = std::string(mesh_dir) + "/Example_tet_wedge.sms";
   model_in = std::string(mesh_dir) + "/Example_tet_wedge.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  auto maxType = Topo_type::wedge;
-  Omega_h::vtk::write_vtu("tet_wedge.vtu", &mesh, maxType);
 
   mesh_in = std::string(mesh_dir) + "/Example_pym_hex.sms";
   model_in = std::string(mesh_dir) + "/Example_pym_hex.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  maxType = Topo_type::pyramid;
-  Omega_h::vtk::write_vtu("pym_hex.vtu", &mesh, maxType);
 
   mesh_in = std::string(mesh_dir) + "/Example_allType.sms";
   model_in = std::string(mesh_dir) + "/Example_allType.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
-  maxType = Topo_type::pyramid;
-  Omega_h::vtk::write_vtu("alltypes.vtu", &mesh, maxType);
 
   test_finer_meshes(comm, mesh_dir);
 
