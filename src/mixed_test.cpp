@@ -157,31 +157,32 @@ void test_adjs(MixedMesh* mesh) {
 void test_finer_meshes(CommPtr comm, std::string mesh_dir) {
 
   //tet=4609, hex=249, wedge=262, pyramid=313
-  std::string mesh_in = std::string(mesh_dir) +
-                        "/localconcave_tutorial_mixedvol_geomsim3-case1.sms";
-  std::string model_in = std::string(mesh_dir) +
-                         "/localconcave_tutorial_mixedvol_geomsim3.smd";
+  auto name = std::string("/localconcave_tutorial_mixedvol_geomsim3");
+  std::string mesh_in = std::string(mesh_dir) + name + "-case1.sms";
+  std::string model_in = std::string(mesh_dir) + name + ".smd";
   auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  auto maxType = Topo_type::pyramid;
+  Omega_h::vtk::write_vtu("./" + name + ".vtk", &mesh, maxType);
 
   //tet=1246, hex=8, wedge=0, pyramid=229
-  mesh_in = std::string(mesh_dir) +
-            "/localconcave_tutorial_mixedvol_geomsim2-case1.sms";
-  model_in = std::string(mesh_dir) +
-             "/localconcave_tutorial_mixedvol_geomsim2.smd";
+  name = std::string("/localconcave_tutorial_mixedvol_geomsim2");
+  mesh_in = std::string(mesh_dir) + name + "-case1.sms";
+  model_in = std::string(mesh_dir) + name + ".smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  Omega_h::vtk::write_vtu("./" + name + ".vtk", &mesh, maxType);
 
   //tet=3274, hex=68, wedge=0, pyramid=171
-  mesh_in = std::string(mesh_dir) +
-            "/localconcave_tutorial_mixedvol_geomsim-case1.sms";
-  model_in = std::string(mesh_dir) +
-             "/localconcave_tutorial_mixedvol_geomsim.smd";
+  name = std::string("/localconcave_tutorial_mixedvol_geomsim");
+  mesh_in = std::string(mesh_dir) + name + "-case1.sms";
+  model_in = std::string(mesh_dir) + name + ".smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  Omega_h::vtk::write_vtu("./" + name + ".vtk", &mesh, maxType);
 
   //tet=4437, hex=0, wedge=0, pyramid=0
   mesh_in = std::string(mesh_dir) +
@@ -210,35 +211,43 @@ int main(int argc, char** argv) {
   auto mesh = meshsim::read(mesh_in, model_in, comm);
   }
 
-  std::string mesh_in = std::string(mesh_dir) + "/Example_wedge.sms";
-  std::string model_in = std::string(mesh_dir) + "/Example_wedge.smd";
+  auto mesh_in = std::string(mesh_dir) + "/Example_wedge.sms";
+  auto model_in = std::string(mesh_dir) + "/Example_wedge.smd";
   auto mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  Omega_h::vtk::write_vtu("wedges.vtk", &mesh, Topo_type::wedge);
 
   mesh_in = std::string(mesh_dir) + "/Example_pym.sms";
   model_in = std::string(mesh_dir) + "/Example_pym.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  Omega_h::vtk::write_vtu("pyramids.vtk", &mesh, Topo_type::pyramid);
 
   mesh_in = std::string(mesh_dir) + "/Example_tet_wedge.sms";
   model_in = std::string(mesh_dir) + "/Example_tet_wedge.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  auto maxType = Topo_type::wedge;
+  Omega_h::vtk::write_vtu("tet_wedge.vtk", &mesh, maxType);
 
   mesh_in = std::string(mesh_dir) + "/Example_pym_hex.sms";
   model_in = std::string(mesh_dir) + "/Example_pym_hex.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  maxType = Topo_type::pyramid;
+  Omega_h::vtk::write_vtu("pym_hex.vtk", &mesh, maxType);
 
   mesh_in = std::string(mesh_dir) + "/Example_allType.sms";
   model_in = std::string(mesh_dir) + "/Example_allType.smd";
   mesh = meshsim::readMixed(mesh_in, model_in, comm);
   test_adjs(&mesh);
   test_tags(&mesh);
+  maxType = Topo_type::pyramid;
+  Omega_h::vtk::write_vtu("alltypes.vtk", &mesh, maxType);
 
   test_finer_meshes(comm, mesh_dir);
 

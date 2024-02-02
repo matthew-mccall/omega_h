@@ -143,7 +143,7 @@ void write_vtu(std::string const& filename, Mesh* mesh, Int cell_dim,
 void write_vtu(std::string const& filename, Mesh* mesh,
     bool compress = OMEGA_H_DEFAULT_COMPRESS);
 
-void write_vtu(filesystem::path const& filename, Mesh* mesh, Topo_type max_type,
+void write_vtu(filesystem::path const& filename, MixedMesh* mesh, Topo_type max_type,
     bool compress = OMEGA_H_DEFAULT_COMPRESS);
 
 void write_parallel(filesystem::path const& path, Mesh* mesh, Int cell_dim,
