@@ -25,17 +25,33 @@
 
 namespace Omega_h {
 
-void MixedMesh::init() {
-  for (Int i = 0; i <= 7; ++i) nents_type_[i] = -1;
-}
-
 MixedMesh::MixedMesh() {
-  init();
+  family_ = OMEGA_H_MIXED;
+  dim_ = -1;
+  for (Int i = 0; i <= 7; ++i) nents_type_[i] = -1;
+  library_ = nullptr;
 }
 
-MixedMesh::MixedMesh(Library* library) : Mesh(library) {
-  init();
+MixedMesh::MixedMesh(Library* library_in) : MixedMesh() {
+  set_library(library_in);
 };
+
+void MixedMesh::set_library(Library* library_in) {
+  OMEGA_H_CHECK(library_in != nullptr);
+  library_ = library_in;
+}
+
+void MixedMesh::set_comm(CommPtr const& new_comm) {
+  OMEGA_H_CHECK(new_comm->size() == 1);
+  comm_ = new_comm;
+}
+
+void MixedMesh::set_dim(Int dim_in) {
+  OMEGA_H_CHECK(dim_ == -1);
+  OMEGA_H_CHECK(dim_in >= 1);
+  OMEGA_H_CHECK(dim_in <= 3);
+  dim_ = dim_in;
+}
 
 void MixedMesh::set_verts_type(LO nverts_in) { nents_type_[int(Topo_type::vertex)] = nverts_in; }
 

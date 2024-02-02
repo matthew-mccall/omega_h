@@ -1,15 +1,36 @@
 #ifndef OMEGA_H_MIXEDMESH_HPP
 #define OMEGA_H_MIXEDMESH_HPP
 
-#include <Omega_h_mesh.hpp>
+#include <Omega_h_adj.hpp>
+#include <Omega_h_comm.hpp>
+#include <Omega_h_dist.hpp>
+#include <Omega_h_library.hpp>
+#include <Omega_h_tag.hpp>
+#include <array>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace Omega_h {
 
-
-class MixedMesh : public Mesh {
+class MixedMesh {
  public:
   MixedMesh();
   MixedMesh(Library* library);
+  void set_library(Library* library);
+  void set_comm(CommPtr const& new_comm);
+  void set_dim(Int dim_in);
+  void set_verts(LO nverts_in);
+  void set_ents(Int ent_dim, Adj down);
+  Library* library() const;
+  CommPtr comm() const;
+  inline Int dim() const {
+    OMEGA_H_CHECK(0 <= dim_ && dim_ <= 3);
+    return dim_;
+  }
+  inline Omega_h_Family family() const { return family_; }
+
   void set_verts_type(LO nverts_in);
   void set_ents(Topo_type high_type, Topo_type low_type, Adj h2l);
   LO nents(Topo_type ent_type) const;
@@ -40,11 +61,8 @@ class MixedMesh : public Mesh {
   template <typename T>
   Read<T> get_array(Topo_type ent_type, std::string const& name) const;
   void remove_tag(Topo_type ent_type, std::string const& name);
-  using Mesh::has_tag;
   bool has_tag(Topo_type ent_type, std::string const& name) const;
-  using Mesh::ntags;
   [[nodiscard]] Int ntags(Topo_type ent_type) const;
-  using Mesh::get_tag;
   TagBase const* get_tag(Topo_type ent_type, Int i) const;
   bool has_ents(Topo_type ent_type) const;
   bool has_adj(Topo_type from_type, Topo_type to_type) const;
@@ -52,6 +70,9 @@ class MixedMesh : public Mesh {
   Adj ask_down(Topo_type from_type, Topo_type to_type);
   LOs ask_verts_of(Topo_type ent_type);
   Adj ask_up(Topo_type from_type, Topo_type to_type);
+
+  typedef std::shared_ptr<const TagBase> TagPtr;
+  typedef std::shared_ptr<const Adj> AdjPtr;
 
  private:
   typedef std::vector<TagPtr> TagVector;
@@ -65,15 +86,22 @@ class MixedMesh : public Mesh {
   Adj derive_adj(Topo_type from_type, Topo_type to_type);
   Adj ask_adj(Topo_type from_type, Topo_type to_type);
   void react_to_set_tag(Topo_type ent_type, std::string const& name);
+  Library* library_;
+  Omega_h_Family family_;
+  Int dim_;
+  CommPtr comm_;
+  LO nents_[DIMS];
+  TagVector tags_[DIMS];
   LO nents_type_[TOPO_TYPES];
   TagVector tags_type_[TOPO_TYPES];
   AdjPtr adjs_type_[TOPO_TYPES][TOPO_TYPES];
-  void init();
 
  public:
   void add_coords_mix(Reals array);
   Reals coords_mix() const;
 };
+
+using TagSet = std::array<std::set<std::string>, DIMS>;
   
 void get_all_type_tags(MixedMesh* mesh, Int dim, Topo_type ent_type, TagSet* tags);
 

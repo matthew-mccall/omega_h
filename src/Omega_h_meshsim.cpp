@@ -424,7 +424,6 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
 
   SimMeshEntInfo simEnts({{numVtx,numEdges,numFaces,numRegions}}, hasNumbering);
   mesh->set_dim(simEnts.maxDim);
-  mesh->set_family(OMEGA_H_MIXED);
 
   // process verts
   auto vtxInfo = simEnts.readVerts(m,nullptr);
@@ -647,7 +646,6 @@ MixedMesh readMixedImpl(filesystem::path const& mesh_fname,
   auto simMeshInfo = getSimMeshInfo(m);
   auto mesh = MixedMesh(comm->library());
   mesh.set_comm(comm);
-  mesh.set_parting(OMEGA_H_ELEM_BASED);
   meshsim::readMixed_internal(m, &mesh, simMeshInfo);
   M_release(m);
   GM_release(g);
