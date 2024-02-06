@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     oss << std::fixed;
 
     if(!rank) {
-        oss << "\nMesh Entity Type: " << Omega_h::topological_singular_name(mesh.family(), mesh.dim()-1) << "\n";
+        oss << "\nMesh Entity Type: " << Omega_h::topological_singular_name(mesh.family(), mesh.dim()) << "\n";
 
         oss << "\nGlobal Mesh Entity Count and Imbalance (max/avg): (Dim, Entity Count, Imbalance)\n";
         for(int dim=0; dim <= mesh.dim(); dim++)
