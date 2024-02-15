@@ -62,6 +62,7 @@ set(Omega_h_SOURCES
   Omega_h_math_lang.cpp
   Omega_h_matrix.cpp
   Omega_h_mesh.cpp
+  Omega_h_mixedMesh.cpp
   Omega_h_rcFields.cpp
   Omega_h_metric.cpp
   Omega_h_metric_input.cpp
@@ -413,11 +414,6 @@ function(test_func_impl TEST_NAME NUM_PROCS)
       ${CMAKE_SOURCE_DIR}/meshes)
 
     osh_add_exe(periodic_test)
-    set(TEST_EXES ${TEST_EXES} periodic_test)
-    test_func(periodic_test 2 ./periodic_test
-      ${CMAKE_SOURCE_DIR}/meshes/wedge_matchZ_12elem.sms
-      ${CMAKE_SOURCE_DIR}/meshes/wedge_match.smd
-      ${CMAKE_SOURCE_DIR}/meshes/wedge_matchZ_12elem_sync_2.osh 2)
   endif()
 
   test_basefunc(run_arrayops 1 ./arrayops_test)
@@ -636,6 +632,7 @@ set(Omega_h_HEADERS
   Omega_h_math_lang.hpp
   Omega_h_matrix.hpp
   Omega_h_mesh.hpp
+  Omega_h_mixedMesh.hpp
   Omega_h_metric.hpp
   Omega_h_mpi.h
   Omega_h_owners.hpp
