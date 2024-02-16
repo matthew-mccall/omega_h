@@ -14,7 +14,20 @@ int main(int argc, char** argv) {
   auto mesh_path = cmdline.get<std::string>("mesh_in.meshb");
   Omega_h::Mesh mesh(&lib);
   Omega_h::binary::read(mesh_path.c_str(), lib.world(), &mesh);
-  fprintf(stderr, "nverts %d nelms %d\n", mesh.nverts(), mesh.nelems());
+
+  auto hasOrigMetric = mesh.has_tag(0,"original_metric");
+  auto hasTgtMetric = mesh.has_tag(0,"target_metric");
+  if (!hasOrigMetric || !hasTgtMetric) {
+    fprintf(stderr, "%s must have both the \"original_metric\" (%s)"
+        " and \"target_metric\" (%s) vertex tags\n",
+        mesh_path.c_str(),
+        hasOrigMetric ? "exists" : "missing",
+        hasTgtMetric ? "exists" : "missing");
+    exit(EXIT_FAILURE);
+  }
+
+  fprintf(stderr, "rank %d: nverts %d nelms %d\n",
+      lib.world()->rank(), mesh.nverts(), mesh.nelems());
   
   Omega_h::add_implied_metric_tag(&mesh);
   mesh.ask_qualities();
