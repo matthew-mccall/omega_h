@@ -107,6 +107,7 @@ set(Omega_h_SOURCES
   Omega_h_xml.cpp
   Omega_h_xml_lite.cpp
   Omega_h_yaml.cpp
+  Omega_h_mesh2d.cpp
   )
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -323,8 +324,7 @@ if(BUILD_TESTING)
     endif()
   endif()
 
-function(test_func_impl TEST_NAME NUM_PROCS)
-
+  function(test_func_impl TEST_NAME NUM_PROCS)
     if (ENABLE_CTEST_MEMPOOL)
       set(CTEST_MEMPOOL_ARG "--osh-pool")
     endif()
@@ -339,7 +339,11 @@ function(test_func_impl TEST_NAME NUM_PROCS)
       endif()
       set(TEST_STR ${VALGRIND} ${ARGN} ${CTEST_MEMPOOL_ARG})
     endif()
-    add_test(NAME ${TEST_NAME} COMMAND ${TEST_STR})
+
+    # need to run as a cmake script to capture assert and other 'system failures'
+    # https://cmake.org/cmake/help/latest/prop_test/WILL_FAIL.html#prop_test:WILL_FAIL
+    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_COMMAND} -E env ${TEST_STR})
+
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
       set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "PATH=${CMAKE_INSTALL_PREFIX}\\bin;$ENV{PATH}" )
     endif()
@@ -363,6 +367,15 @@ function(test_func_impl TEST_NAME NUM_PROCS)
       set_property(TEST ${TEST_NAME} PROPERTY LABELS "mesh")
     endif()
   endfunction(test_func)
+
+  # Unlike test_func, will_fail_test_func assumes the command for the test, thus you should specify it the arguments.
+  function(will_fail_test_func TEST_NAME NUM_PROCS)
+    test_func_impl(${TEST_NAME} ${NUM_PROCS} ${ARGN})
+    set_property(TEST ${TEST_NAME} PROPERTY WILL_FAIL TRUE)
+    if(TEST ${TEST_NAME})
+      set_property(TEST ${TEST_NAME} PROPERTY LABELS "mesh")
+    endif()
+  endfunction()
 
   osh_add_exe(for_test)
   osh_add_exe(reprosum_test)
@@ -415,6 +428,14 @@ function(test_func_impl TEST_NAME NUM_PROCS)
 
     osh_add_exe(periodic_test)
   endif()
+
+  osh_add_exe(load_2d)
+  set(TEST_EXES ${TEST_EXES} load_2d)
+  will_fail_test_func(load_2d_box_100 1 ./load_2d box_100.osh)
+
+  osh_add_exe(osh_scale2d)
+  set(TEST_EXES ${TEST_EXES} osh_scale2d)
+  test_func(osh_scale2d 1 ./osh_scale2d ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh 100 plate_100.osh)
 
   test_basefunc(run_arrayops 1 ./arrayops_test)
   set(TEST_EXES ${TEST_EXES} reprosum_test)
