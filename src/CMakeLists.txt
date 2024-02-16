@@ -369,7 +369,7 @@ if(BUILD_TESTING)
   endfunction(test_func)
 
   # Unlike test_func, will_fail_test_func assumes the command for the test, thus you should specify it the arguments.
-  function(will_fail_test_func TEST_NAME)
+  function(will_fail_test_func TEST_NAME NUM_PROCS)
     test_func_impl(${TEST_NAME} ${NUM_PROCS} ${ARGN})
     set_property(TEST ${TEST_NAME} PROPERTY WILL_FAIL TRUE)
     if(TEST ${TEST_NAME})
