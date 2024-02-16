@@ -340,10 +340,10 @@ if(BUILD_TESTING)
       set(TEST_STR ${VALGRIND} ${ARGN} ${CTEST_MEMPOOL_ARG})
     endif()
 
-    list(POP_FRONT ARGN TEST_EXEC)
-    string(REPLACE "./" "" TEST_EXEC ${TEST_EXEC})
+    # need to run as a cmake script to capture assert and other 'system failures'
+    # https://cmake.org/cmake/help/latest/prop_test/WILL_FAIL.html#prop_test:WILL_FAIL
+    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_COMMAND} -E env ${TEST_STR})
 
-    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:${TEST_EXEC}> ${VALGRIND} ${ARGN} ${CTEST_MEMPOOL_ARG}) # https://cmake.org/cmake/help/latest/prop_test/WILL_FAIL.html#prop_test:WILL_FAIL
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
       set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "PATH=${CMAKE_INSTALL_PREFIX}\\bin;$ENV{PATH}" )
     endif()
